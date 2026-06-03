@@ -1,0 +1,85 @@
+{
+  "server": {
+    "port": 8686,
+    "host": "0.0.0.0"
+  },
+  "paths": {
+    "mediaRoot": "/media",
+    "downloads": "/media/downloads",
+    "downloadsIncomplete": "/media/downloads/incomplete",
+    "downloadsComplete": "/media/downloads/complete",
+    "staging": "/media/staging",
+    "library": "/media/library",
+    "cloudRealDebrid": "/cloud/realdebrid",
+    "cloudTorBox": "/cloud/torbox",
+    "config": "/config"
+  },
+  "scanner": {
+    "intervalMinutes": 15,
+    "mediaExtensions": [".mkv", ".mp4", ".avi", ".ts", ".wmv", ".m4v", ".mov", ".flv", ".webm", ".mpg", ".mpeg"],
+    "minFileSizeBytes": 104857600
+  },
+  "encoding": {
+    "defaultEncoder": "nvenc",
+    "defaultContainer": "mkv",
+    "maxConcurrentJobs": 1,
+    "autoEncodeLocalDownloads": true,
+    "autoEncodeLocalImports": true,
+    "neverAutoEncodePaths": [
+      "/cloud/realdebrid",
+      "/cloud/torbox",
+      "/pd_zurg/mnt/pd_zurg",
+      "/home/joseph/torbox"
+    ],
+    "presets": {
+      "cpu_x265": {
+        "4k_hdr": { "crf": 19, "preset": "slow", "pixFmt": "yuv420p10le" },
+        "4k_sdr": { "crf": 21, "preset": "slow", "pixFmt": "yuv420p10le" },
+        "1080p":  { "crf": 22, "preset": "slow", "pixFmt": "yuv420p10le" },
+        "720p":   { "crf": 24, "preset": "slow", "pixFmt": "yuv420p10le" },
+        "480p":   { "crf": 25, "preset": "slow", "pixFmt": "yuv420p10le" }
+      },
+      "nvenc": {
+        "4k_hdr": { "bitrate": "20M", "maxrate": "24M", "preset": "p6", "pixFmt": "p010le" },
+        "4k_sdr": { "bitrate": "15M", "maxrate": "18M", "preset": "p6", "pixFmt": "p010le" },
+        "1080p":  { "bitrate": "6M",  "maxrate": "8M",  "preset": "p6", "pixFmt": "p010le" },
+        "720p":   { "bitrate": "3M",  "maxrate": "4M",  "preset": "p6", "pixFmt": "p010le" },
+        "480p":   { "bitrate": "1.5M","maxrate": "2M",  "preset": "p6", "pixFmt": "p010le" }
+      }
+    },
+    "skipCodecs": ["av1"],
+    "reencodeCodecs": ["h264", "mpeg2video", "vc1", "msmpeg4v3", "mpeg4", "vp8"],
+    "durationToleranceSeconds": 2,
+    "minSavingPercent": 10
+  },
+  "audio": {
+    "preserveAllTracks": true,
+    "copyCodecs": ["aac", "ac3", "eac3", "dts", "truehd"],
+    "convertHighBitrateToEac3": false,
+    "singleAudioMode": false
+  },
+  "subtitles": {
+    "copyAllSupported": true,
+    "burnSubtitles": false
+  },
+  "integrations": {
+    "plex": {
+      "url": "http://172.17.0.1:32400",
+      "autoRefreshOnImport": true
+    },
+    "tautulli": {
+      "url": "http://172.17.0.1:8181",
+      "preservationThresholdPlays": 3,
+      "preservationLookbackDays": 90
+    },
+    "qbittorrent": {
+      "url": "http://qbittorrent:8080",
+      "pollIntervalSeconds": 10,
+      "downloadCategory": "schrodrive"
+    },
+    "tmdb": {
+      "baseUrl": "https://api.themoviedb.org/3",
+      "imageBaseUrl": "https://image.tmdb.org/t/p"
+    }
+  }
+}

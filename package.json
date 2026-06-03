@@ -1,0 +1,25 @@
+{
+  "name": "schrodrive-media",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SchroDrive Media Manager — Docker-compatible local media manager for Plex stacks",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:backend": "bun run --filter backend dev",
+    "dev:frontend": "bun run --filter frontend dev",
+    "build": "bun run build:frontend && bun run build:backend",
+    "build:frontend": "bun run --filter frontend build",
+    "build:backend": "bun run --filter backend build",
+    "start": "bun run --filter backend start",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "db:migrate": "bun run --filter backend db:migrate",
+    "lint": "bun run --filter '*' lint"
+  },
+  "author": "SchroDrive",
+  "license": "MIT"
+}

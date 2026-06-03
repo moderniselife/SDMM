@@ -1,0 +1,88 @@
+# =============================================================================
+# SchroDrive Media Manager — Docker Compose
+# =============================================================================
+# This file defines the schrodrive-media and optional qbittorrent services.
+# Add these services to your existing docker-compose.yml stack, or use this
+# file standalone with: docker compose -f docker-compose.yml up -d
+# =============================================================================
+
+services:
+  # -------------------------------------------------------------------------
+  # SchroDrive Media Manager
+  # -------------------------------------------------------------------------
+  schrodrive-media:
+    build: .
+    image: schrodrive-media:latest
+    container_name: schrodrive-media
+    restart: unless-stopped
+    runtime: nvidia
+    ports:
+      - "8686:8686"
+    volumes:
+      # App config and database
+      - /home/joseph/schrodrive-media/config:/config
+      # Local media storage (read-write)
+      - /mnt/media:/media
+      # Cloud mounts (READ-ONLY — critical safety measure)
+      - /pd_zurg/mnt/pd_zurg:/cloud/realdebrid:ro
+      - /home/joseph/torbox:/cloud/torbox:ro
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Australia/Sydney
+      - PORT=8686
+      # NVIDIA hardware encoding
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
+      # Plex integration
+      - PLEX_URL=http://172.17.0.1:32400
+      - PLEX_TOKEN=${PLEX_TOKEN}
+      # Tautulli integration
+      - TAUTULLI_URL=http://172.17.0.1:8181
+      - TAUTULLI_API_KEY=${TAUTULLI_API_KEY}
+      # qBittorrent integration
+      - QBITTORRENT_URL=http://qbittorrent:8080
+      - QBITTORRENT_USERNAME=${QBITTORRENT_USERNAME:-admin}
+      - QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD}
+      # TMDB for poster metadata
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      # Encoding
+      - ENCODER_DEFAULT=${ENCODER_DEFAULT:-nvenc}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    depends_on:
+      qbittorrent:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8686/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # -------------------------------------------------------------------------
+  # qBittorrent (optional — torrent download client)
+  # -------------------------------------------------------------------------
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Australia/Sydney
+      - WEBUI_PORT=8080
+    volumes:
+      - /home/joseph/qbittorrent/config:/config
+      - /mnt/media/downloads:/downloads
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
