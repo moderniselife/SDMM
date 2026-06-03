@@ -53,16 +53,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app user (--force handles pre-existing GID in base image)
+# Create app user (replace base image's bun user with schrodrive)
 ARG PUID=1000
 ARG PGID=1000
-RUN groupadd --force -g ${PGID} schrodrive && \
-    (id -u schrodrive &>/dev/null || useradd -u ${PUID} -g schrodrive -m -s /bin/bash schrodrive)
+RUN userdel -r bun 2>/dev/null || true && \
+    groupdel bun 2>/dev/null || true && \
+    groupadd -g ${PGID} schrodrive && \
+    useradd -u ${PUID} -g schrodrive -m -s /bin/bash schrodrive
 
 # Create required directories
 RUN mkdir -p /config /media/downloads/incomplete /media/downloads/complete \
     /media/staging /media/library /cloud/realdebrid /cloud/torbox /app/logs \
-    && chown -R schrodrive:schrodrive /config /media /app /cloud
+    && chown -R ${PUID}:${PGID} /config /media /app /cloud
 
 WORKDIR /app
 
