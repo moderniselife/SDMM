@@ -23,9 +23,19 @@ services:
       - /home/joseph/schrodrive-media/config:/config
       # Local media storage (read-write)
       - /mnt/media:/media
-      # Cloud mounts (READ-ONLY — critical safety measure)
-      - /pd_zurg/mnt/pd_zurg:/cloud/realdebrid:ro
-      - /home/joseph/torbox:/cloud/torbox:ro
+      # Cloud mounts (READ-ONLY — managed externally by zurg/rclone)
+      - type: bind
+        source: /pd_zurg/mnt/pd_zurg
+        target: /cloud/realdebrid
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /home/joseph/torbox
+        target: /cloud/torbox
+        read_only: true
+        bind:
+          create_host_path: false
     environment:
       - PUID=1000
       - PGID=1000
