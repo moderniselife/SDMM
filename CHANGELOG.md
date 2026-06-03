@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Anti-FOUC inline script applies theme before React hydrates
 - CSS custom properties for both light and dark modes
 - Light-mode adapted glassmorphism, skeleton loaders, gradient text, and badge colours
+- Reconciler service: scanner→DB bridge with filename parsing, fuzzy title matching, and media_items/media_sources upserting
+- Metadata enrichment service: Plex-first, TMDB-fallback strategy with bulk Plex library sync
+- Watch stats sync service: Tautulli watch statistics with single-item, bulk, and periodic sync modes
+- Worker wiring service: real DB-backed dependency injection callbacks for encode, download, and import workers
 
 ## [0.1.0] - 2026-06-03
 
