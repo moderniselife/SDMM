@@ -205,6 +205,35 @@ export interface MediaFilters {
   pageSize: number;
 }
 
+// ── Watch Stats ────────────────────────────────────────────
+export interface WatchStats {
+  id: string;
+  mediaItemId: string;
+  plexRatingKey: string;
+  totalPlays: number;
+  lastPlayedAt: string | null;
+  totalWatchTimeSeconds: number;
+  uniqueViewers: number;
+  fetchedAt: string;
+}
+
+// ── Plex Match ─────────────────────────────────────────────
+export interface PlexMatch {
+  id: string;
+  mediaItemId: string;
+  plexRatingKey: string;
+  plexSectionId: number;
+  plexTitle: string;
+  matchedAt: string;
+}
+
+// ── Media Item Detail (extends MediaItem with nested data) ─
+export interface MediaItemDetail extends MediaItem {
+  encodeHistory: EncodeJob[];
+  plexMatch: PlexMatch | null;
+  watchStats: WatchStats | null;
+}
+
 // ── Plex Search ────────────────────────────────────────────
 export interface PlexSearchResult {
   ratingKey: string;

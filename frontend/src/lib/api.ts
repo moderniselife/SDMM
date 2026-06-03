@@ -12,6 +12,7 @@ import type {
   EncodeJob,
   MediaFilters,
   MediaItem,
+  MediaItemDetail,
   PaginatedResponse,
   ActivityEntry,
   PreservationSuggestion,
@@ -61,8 +62,8 @@ export async function fetchMedia(filters: Partial<MediaFilters>): Promise<Pagina
   return res.data;
 }
 
-export async function fetchMediaById(id: string): Promise<MediaItem> {
-  const res = await api.get(`media/${id}`).json<ApiResponse<MediaItem>>();
+export async function fetchMediaById(id: string): Promise<MediaItemDetail> {
+  const res = await api.get(`media/${id}`).json<ApiResponse<MediaItemDetail>>();
   return res.data;
 }
 

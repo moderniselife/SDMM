@@ -233,6 +233,98 @@ mediaRoutes.get('/media', (c) => {
 });
 
 // =============================================================================
+// GET /api/media/unmatched — Media items without a Plex match
+// =============================================================================
+
+/**
+ * GET /api/media/unmatched
+ *
+ * Returns all media items that do not have a corresponding plex_matches
+ * record. Used by the Unmatched Media page for manual matching.
+ *
+ * NOTE: This route MUST be declared before /media/:id to prevent
+ * Hono from matching "unmatched" as an ID parameter.
+ */
+mediaRoutes.get('/media/unmatched', (c) => {
+  try {
+    const rows = db
+      .query<Record<string, unknown>, []>(`
+        SELECT mi.id, mi.title, mi.type, mi.year,
+               mi.imdb_id, mi.tmdb_id, mi.tvdb_id,
+               mi.poster_url, mi.created_at, mi.updated_at
+        FROM media_items mi
+        LEFT JOIN plex_matches pm ON pm.media_item_id = mi.id
+        WHERE pm.id IS NULL
+        ORDER BY mi.created_at DESC
+      `)
+      .all();
+
+    const items = rows.map((row) => {
+      const sourceRow = db
+        .query<Record<string, unknown>, [string]>(`
+          SELECT id, media_item_id, source_type, file_path, file_name,
+                 file_size, status, is_optimised, do_not_process,
+                 created_at, updated_at
+          FROM media_sources
+          WHERE media_item_id = ?
+          LIMIT 1
+        `)
+        .get(row['id'] as string);
+
+      const sources: MediaSource[] = sourceRow
+        ? [{
+            id: sourceRow['id'] as string,
+            mediaItemId: sourceRow['media_item_id'] as string,
+            sourceType: sourceRow['source_type'] as MediaSource['sourceType'],
+            filePath: sourceRow['file_path'] as string,
+            fileName: sourceRow['file_name'] as string,
+            fileSize: sourceRow['file_size'] as number,
+            status: sourceRow['status'] as MediaSource['status'],
+            isOptimised: (sourceRow['is_optimised'] as number) === 1,
+            doNotProcess: (sourceRow['do_not_process'] as number) === 1,
+            createdAt: sourceRow['created_at'] as string,
+            updatedAt: sourceRow['updated_at'] as string,
+          }]
+        : [];
+
+      return {
+        id: row['id'] as string,
+        title: row['title'] as string,
+        type: row['type'] as MediaItem['type'],
+        year: row['year'] as number | null,
+        imdbId: row['imdb_id'] as string | null,
+        tmdbId: row['tmdb_id'] as string | null,
+        tvdbId: row['tvdb_id'] as string | null,
+        posterUrl: row['poster_url'] as string | null,
+        createdAt: row['created_at'] as string,
+        updatedAt: row['updated_at'] as string,
+        sources,
+      };
+    });
+
+    const response: ApiResponse<typeof items> = {
+      success: true,
+      data: items,
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response);
+  } catch (err) {
+    log.error('Failed to fetch unmatched media', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Failed to fetch unmatched media',
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 500);
+  }
+});
+
+// =============================================================================
 // GET /api/media/:id — Full media item detail
 // =============================================================================
 
@@ -447,6 +539,131 @@ mediaRoutes.get('/media/:id', (c) => {
     const response: ApiResponse<never> = {
       success: false,
       error: 'Failed to fetch media item',
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 500);
+  }
+});
+
+
+// =============================================================================
+// POST /api/media/:id/match — Manually match a media item to a Plex entry
+// =============================================================================
+
+/**
+ * POST /api/media/:id/match
+ *
+ * Creates a plex_matches record linking a media item to a Plex rating key.
+ * Also fetches metadata from Plex to update the poster and title if available.
+ *
+ * Body: { plexRatingKey: string }
+ */
+mediaRoutes.post('/media/:id/match', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json<{ plexRatingKey: string }>();
+
+    if (!body.plexRatingKey) {
+      const response: ApiResponse<never> = {
+        success: false,
+        error: 'plexRatingKey is required',
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(response, 400);
+    }
+
+    // Check media item exists
+    const itemRow = db
+      .query<Record<string, unknown>, [string]>(
+        'SELECT id, title FROM media_items WHERE id = ?',
+      )
+      .get(id);
+
+    if (!itemRow) {
+      const response: ApiResponse<never> = {
+        success: false,
+        error: `Media item not found: ${id}`,
+        timestamp: new Date().toISOString(),
+      };
+      return c.json(response, 404);
+    }
+
+    // Remove any existing match for this item
+    db.query<null, [string]>('DELETE FROM plex_matches WHERE media_item_id = ?').run(id);
+
+    // Create the new match
+    const matchId = crypto.randomUUID();
+    db.query<null, [string, string, string, number, string]>(`
+      INSERT INTO plex_matches (id, media_item_id, plex_rating_key, plex_section_id, plex_title)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(matchId, id, body.plexRatingKey, 0, itemRow['title'] as string);
+
+    // Try to enrich with Plex metadata
+    try {
+      const { plexClient } = await import('../services/integrations/plex-client');
+      const metadata = await plexClient.getMetadata(body.plexRatingKey);
+      if (metadata) {
+        const appConfig = (await import('../config')).config;
+        const plexToken = process.env['PLEX_TOKEN'] ?? '';
+        const posterUrl = metadata.thumb
+          ? `${appConfig.integrations.plex.url}${metadata.thumb}?X-Plex-Token=${plexToken}`
+          : null;
+
+        // Update the media item with Plex metadata
+        if (posterUrl || metadata.title) {
+          db.query<null, [string | null, string | null, number | null, string]>(`
+            UPDATE media_items
+            SET poster_url = COALESCE(?, poster_url),
+                title = COALESCE(?, title),
+                year = COALESCE(?, year),
+                updated_at = datetime('now')
+            WHERE id = ?
+          `).run(posterUrl, metadata.title || null, metadata.year ?? null, id);
+        }
+
+        // Update the match with the Plex title and section
+        if (metadata.title) {
+          db.query<null, [string, string]>(`
+            UPDATE plex_matches SET plex_title = ? WHERE id = ?
+          `).run(metadata.title, matchId);
+        }
+      }
+    } catch (enrichErr) {
+      // Non-fatal — the match is still created
+      log.warn('Failed to enrich matched media with Plex metadata', {
+        error: enrichErr instanceof Error ? enrichErr.message : String(enrichErr),
+      });
+    }
+
+    // Log the action
+    db.query<null, [string, string, string, string, string, string]>(`
+      INSERT INTO audit_logs (id, timestamp, action, entity_type, entity_id, details, source)
+      VALUES (?, datetime('now'), ?, ?, ?, ?, ?)
+    `).run(
+      crypto.randomUUID(),
+      'plex_match',
+      'media_item',
+      id,
+      `Manually matched to Plex rating key ${body.plexRatingKey}`,
+      'user',
+    );
+
+    const response: ApiResponse<{ matchId: string }> = {
+      success: true,
+      data: { matchId },
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 201);
+  } catch (err) {
+    log.error('Failed to match media to Plex', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Failed to match media to Plex',
       timestamp: new Date().toISOString(),
     };
 

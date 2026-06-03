@@ -14,7 +14,7 @@ import { formatBytes, timeAgo } from '@/lib/utils';
 import { useState } from 'react';
 import { useApi } from '@/hooks/useApi';
 import { fetchMediaById, copyToLocal, encodeToLocal, preserve } from '@/lib/api';
-import type { MediaSource, EncodeJob } from '@/lib/types';
+import type { MediaSource, EncodeJob, WatchStats } from '@/lib/types';
 
 function DetailSkeleton() {
   return (
@@ -153,7 +153,8 @@ export function MediaDetail() {
     );
   }
 
-  const encodeHistory: EncodeJob[] = [];
+  const encodeHistory: EncodeJob[] = media.encodeHistory ?? [];
+  const watchStats: WatchStats | null = media.watchStats ?? null;
 
   return (
     <div className="space-y-6">
@@ -290,18 +291,35 @@ export function MediaDetail() {
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-foreground">—</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {watchStats ? watchStats.totalPlays : '—'}
+                  </p>
                   <p className="text-sm text-muted-foreground">Total Plays</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-foreground">—</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {watchStats?.lastPlayedAt ? timeAgo(watchStats.lastPlayedAt) : '—'}
+                  </p>
                   <p className="text-sm text-muted-foreground">Last Watched</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-foreground">—</p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {watchStats
+                      ? watchStats.totalWatchTimeSeconds >= 3600
+                        ? `${Math.floor(watchStats.totalWatchTimeSeconds / 3600)}h ${Math.floor((watchStats.totalWatchTimeSeconds % 3600) / 60)}m`
+                        : `${Math.floor(watchStats.totalWatchTimeSeconds / 60)}m`
+                      : '—'}
+                  </p>
                   <p className="text-sm text-muted-foreground">Total Watch Time</p>
                 </div>
               </div>
+              {watchStats && (
+                <div className="mt-4 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                  <span>{watchStats.uniqueViewers} unique viewer{watchStats.uniqueViewers !== 1 ? 's' : ''}</span>
+                  <span>•</span>
+                  <span>Last synced {timeAgo(watchStats.fetchedAt)}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
