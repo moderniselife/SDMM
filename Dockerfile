@@ -6,7 +6,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Build Frontend
 # ---------------------------------------------------------------------------
-FROM oven/bun:1 AS frontend-build
+FROM oven/bun:latest AS frontend-build
 
 WORKDIR /app/frontend
 
@@ -25,7 +25,7 @@ RUN bun run build
 # ---------------------------------------------------------------------------
 # Stage 2: Prepare Backend
 # ---------------------------------------------------------------------------
-FROM oven/bun:1 AS backend-build
+FROM oven/bun:latest AS backend-build
 
 WORKDIR /app/backend
 
@@ -53,11 +53,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app user
+# Create app user (--force handles pre-existing GID in base image)
 ARG PUID=1000
 ARG PGID=1000
-RUN groupadd -g ${PGID} schrodrive && \
-    useradd -u ${PUID} -g schrodrive -m -s /bin/bash schrodrive
+RUN groupadd --force -g ${PGID} schrodrive && \
+    (id -u schrodrive &>/dev/null || useradd -u ${PUID} -g schrodrive -m -s /bin/bash schrodrive)
 
 # Create required directories
 RUN mkdir -p /config /media/downloads/incomplete /media/downloads/complete \
