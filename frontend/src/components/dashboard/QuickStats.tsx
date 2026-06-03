@@ -68,26 +68,26 @@ export function QuickStats({ stats, loading }: QuickStatsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        icon={<HardDrive className="h-5 w-5 text-emerald-400" />}
+        icon={<HardDrive className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
         label="Total Local Items"
         value={stats.totalLocalItems.toLocaleString()}
         iconColour="bg-emerald-500/15"
       />
       <StatCard
-        icon={<Cloud className="h-5 w-5 text-amber-400" />}
+        icon={<Cloud className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
         label="Cloud Items"
         value={stats.totalCloudItems.toLocaleString()}
         iconColour="bg-amber-500/15"
       />
       <StatCard
-        icon={<Cpu className="h-5 w-5 text-purple-400" />}
+        icon={<Cpu className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
         label="Active Encodes"
         value={stats.activeEncodes.toLocaleString()}
         iconColour="bg-purple-500/15"
         pulse={stats.activeEncodes > 0}
       />
       <StatCard
-        icon={<TrendingDown className="h-5 w-5 text-green-400" />}
+        icon={<TrendingDown className="h-5 w-5 text-green-600 dark:text-green-400" />}
         label="Space Saved"
         value={formatBytes(stats.spaceSavedBytes)}
         iconColour="bg-green-500/15"

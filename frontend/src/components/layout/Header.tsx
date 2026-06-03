@@ -1,11 +1,12 @@
 /**
- * Header — Top bar with page title, global search, and notification bell.
+ * Header — Top bar with page title, global search, theme toggle, and notification bell.
  */
 import { useLocation } from 'react-router-dom';
 import { Bell, Menu, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 import { useMediaStore } from '@/stores/media';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -84,6 +85,9 @@ export function Header({ onMenuToggle, activeJobs = 0 }: HeaderProps) {
           aria-label="Search all media"
         />
       </div>
+
+      {/* Theme toggle */}
+      <ThemeToggle />
 
       {/* Notification bell */}
       <Button variant="ghost" size="icon" className="relative" aria-label="View notifications">

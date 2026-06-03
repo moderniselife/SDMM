@@ -3,6 +3,7 @@
  */
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTheme } from '@/components/theme-provider';
 import { formatBytes } from '@/lib/utils';
 import type { DashboardStats } from '@/lib/types';
 
@@ -19,9 +20,13 @@ const COLOURS = [
   '#f59e0b', // amber
   '#10b981', // emerald
 ];
-const FREE_COLOUR = '#1e293b'; // slate-800
+const FREE_COLOUR_DARK = '#1e293b'; // slate-800
+const FREE_COLOUR_LIGHT = '#e2e8f0'; // slate-200
 
 export function StorageChart({ stats, loading }: StorageChartProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const freeColour = isDark ? FREE_COLOUR_DARK : FREE_COLOUR_LIGHT;
   if (loading || !stats) {
     return (
       <Card>
@@ -67,7 +72,7 @@ export function StorageChart({ stats, loading }: StorageChartProps) {
                     key={entry.name}
                     fill={
                       index === chartData.length - 1
-                        ? FREE_COLOUR
+                        ? freeColour
                         : COLOURS[index % COLOURS.length]
                     }
                   />
@@ -75,11 +80,12 @@ export function StorageChart({ stats, loading }: StorageChartProps) {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'hsl(222 47% 11%)',
-                  border: '1px solid hsl(217 33% 25% / 0.5)',
+                  backgroundColor: isDark ? 'hsl(222 47% 11%)' : 'hsl(0 0% 100%)',
+                  border: isDark ? '1px solid hsl(217 33% 25% / 0.5)' : '1px solid hsl(214 32% 91%)',
                   borderRadius: '0.5rem',
-                  color: 'hsl(210 40% 98%)',
+                  color: isDark ? 'hsl(210 40% 98%)' : 'hsl(222 47% 11%)',
                   fontSize: '0.75rem',
+                  boxShadow: isDark ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.1)',
                 }}
                 formatter={(value) => formatBytes(Number(value))}
               />
@@ -106,7 +112,7 @@ export function StorageChart({ stats, loading }: StorageChartProps) {
             </div>
           ))}
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: FREE_COLOUR }} />
+            <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: freeColour }} />
             <span className="text-xs text-muted-foreground">Free Space</span>
           </div>
         </div>
