@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend: loading skeletons and error banners on all pages
 - New Unmatched Media page: browse unmatched items, search Plex, manually match with confirm UI
 - PlexSearchResult type and API functions for Plex matching workflow
+- Backend: GET /api/media/unmatched endpoint for items without a Plex match
+- Backend: POST /api/media/:id/match endpoint for manual Plex matching with metadata enrichment
+- Frontend: WatchStats, PlexMatch, and MediaItemDetail types
+- Frontend: MediaDetail watch stats tab shows real data (plays, last watched, watch time, unique viewers)
+- Frontend: MediaDetail encode history tab uses real API data
 
 ## [0.1.0] - 2026-06-03
 
