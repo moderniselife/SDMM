@@ -37,16 +37,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend: MediaDetail encode history tab uses real API data
 - Backend: GET /api/activity route for audit log entries
 - Backend: GET /api/suggestions/preservation route for Tautulli-based suggestions
+- Backend: SSE streaming endpoint GET /api/sources/:type/browse for progressive cloud directory loading
+- Frontend: useCloudBrowser hook with EventSource for batched progressive file loading
+- Database: indexes on media_sources(media_item_id), plex_matches(media_item_id), file_probes(media_source_id)
 
 ### Fixed
 
-- Dashboard storage chart now shows real filesystem usage via statfsSync instead of 0 B
+- Dashboard storage chart now shows real filesystem usage via statfs instead of 0 B
 - Sidebar storage bar fetches real data from dashboard API instead of hardcoded 3.2 TB / 8 TB
 - Reconciler filename parser now extracts show names from directory paths for episode files (e.g. "Vikings" from /shows/Vikings/Season 2/S02E10.mkv)
 - Frontend MediaItem/MediaSource types aligned with backend response shapes
 - MediaBadge case-insensitive lookup (backend returns lowercase source types)
 - fetchMedia parameter mapping fixed (source→sourceType, pageSize→limit)
 - MediaCard, MediaDetail, SearchBar handle optional resolution/codec/status fields
+- Cloud files endpoint URL mismatch (/files suffix removed to match backend routes)
+- Cloud files response shape transform (backend FileEntry → frontend CloudFile)
+
+### Performance
+
+- Cloud scanners (RealDebrid, TorBox) no longer call stat() on FUSE mounts — eliminated event loop blocking that caused ALL API endpoints to timeout
+- Cloud file browser pages rewritten with SSE streaming — no more timeouts on large directories
+- Media list and unmatched endpoints use batch IN() queries instead of N+1 per-item SELECTs
+- Unmatched media endpoint now has LIMIT 500 (was unbounded)
+- Replaced synchronous statfsSync with async statfs in dashboard route
+- Added missing FK indexes to prevent full table scans on JOINs
+- Increased frontend API timeout from 30s to 120s as safety net
 
 ## [0.1.0] - 2026-06-03
 
