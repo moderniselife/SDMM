@@ -5,6 +5,17 @@ All notable changes to SchroDrive Media Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Deploy script (`deploy.sh`) for automated SSH + Docker deployment to remote server
+  - rsync/scp file upload with node_modules, .git, dist exclusions
+  - Docker Compose build (--no-cache) and stack deployment
+  - Discord webhook notifications (deploying, success, failure embeds)
+  - Deploy history tracking with rolling average timing (last 20 deploys)
+  - Pre-flight checks for ssh, scp, rsync
+
 ## [0.1.0] - 2026-06-03
 
 ### Added
