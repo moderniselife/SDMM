@@ -247,77 +247,112 @@ function normaliseTitle(title: string): string {
     .trim();
 }
 
-// ---------------------------------------------------------------------------
-// Database Operations
-// ---------------------------------------------------------------------------
+/**
+ * In-memory cache for media item lookups during reconciliation.
+ * Key: `${normalisedTitle}::${type}::${year ?? ''}` → media_item ID.
+ *
+ * This eliminates the critical memory leak where findOrCreateMediaItem
+ * queried ALL media_items (thousands of rows) for EVERY file (39,877
+ * times), creating hundreds of millions of JS objects that V8's GC
+ * couldn't collect fast enough → 48GB memory usage.
+ *
+ * Now: one DB query populates the Map, then all lookups are O(1).
+ */
+type MediaItemCache = Map<string, string>;
 
 /**
- * Find an existing media_item by title + year, or create a new one.
- * Uses normalised, case-insensitive title matching.
- *
- * @param parsed - Parsed media metadata from filename
- * @returns The media_item ID (existing or newly created)
+ * Build a cache key for media item lookups.
+ * Format: `normalisedTitle::type::year`
  */
-export async function findOrCreateMediaItem(parsed: ParsedMedia): Promise<string> {
-  const normalisedTitle = normaliseTitle(parsed.title);
+function cacheKey(normTitle: string, mediaType: string, year: number | null): string {
+  const type = mediaType === 'episode' ? 'series' : mediaType;
+  return `${normTitle}::${type}::${year ?? ''}`;
+}
 
-  // Try to find an existing item with matching normalised title and year
-  // We pull all candidates and compare normalised titles in code,
-  // since SQLite lacks robust fuzzy matching built-in.
-  interface MediaItemRow {
+/**
+ * Build the initial media item cache from the database.
+ * One query, one scan — no per-file queries needed.
+ */
+function buildMediaItemCache(): MediaItemCache {
+  interface CacheRow {
     id: string;
     title: string;
+    type: string;
     year: number | null;
   }
 
-  let candidates: MediaItemRow[];
+  const rows = db.prepare(`
+    SELECT id, title, type, year FROM media_items
+  `).all() as CacheRow[];
 
-  if (parsed.year !== null) {
-    // Match by year first for efficiency, then fuzzy-match title
-    candidates = db.prepare(`
-      SELECT id, title, year FROM media_items
-      WHERE year = ? AND type = ?
-    `).all(parsed.year, parsed.mediaType === 'episode' ? 'series' : parsed.mediaType) as MediaItemRow[];
-  } else {
-    // No year — search by type only
-    candidates = db.prepare(`
-      SELECT id, title, year FROM media_items
-      WHERE type = ?
-    `).all(parsed.mediaType === 'episode' ? 'series' : parsed.mediaType) as MediaItemRow[];
-  }
+  const cache: MediaItemCache = new Map();
 
-  // Check for a fuzzy title match
-  for (const candidate of candidates) {
-    if (normaliseTitle(candidate.title) === normalisedTitle) {
-      log.debug('Found existing media item via fuzzy match', {
-        existingId: candidate.id,
-        existingTitle: candidate.title,
-        parsedTitle: parsed.title,
-      });
-      return candidate.id;
+  for (const row of rows) {
+    const normTitle = normaliseTitle(row.title);
+    // Cache with year
+    cache.set(cacheKey(normTitle, row.type, row.year), row.id);
+    // Also cache without year for fuzzy matching
+    const noYearKey = cacheKey(normTitle, row.type, null);
+    if (!cache.has(noYearKey)) {
+      cache.set(noYearKey, row.id);
     }
   }
 
-  // No match found — create a new media_item
+  log.info(`Media item cache built: ${cache.size} entries from ${rows.length} items`);
+  return cache;
+}
+
+/**
+ * Find an existing media_item by normalised title + type + year,
+ * using the in-memory cache. If not found, creates a new one
+ * and updates the cache.
+ *
+ * @param parsed - Parsed media metadata from filename
+ * @param cache - In-memory media item lookup cache
+ * @returns The media_item ID (existing or newly created)
+ */
+function findOrCreateMediaItemCached(parsed: ParsedMedia, cache: MediaItemCache): string {
+  const normTitle = normaliseTitle(parsed.title);
+  const type = parsed.mediaType === 'episode' ? 'series' : parsed.mediaType;
+
+  // Try exact match (title + type + year)
+  if (parsed.year !== null) {
+    const exactKey = cacheKey(normTitle, type, parsed.year);
+    const existing = cache.get(exactKey);
+    if (existing) return existing;
+  }
+
+  // Try without year (fuzzy)
+  const fuzzyKey = cacheKey(normTitle, type, null);
+  const fuzzyMatch = cache.get(fuzzyKey);
+  if (fuzzyMatch) return fuzzyMatch;
+
+  // No match — create new media_item
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  // For episodes, we create a 'series' entry (the parent show)
-  const itemType = parsed.mediaType === 'episode' ? 'series' : parsed.mediaType;
 
   db.prepare(`
     INSERT INTO media_items (id, title, type, year, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, parsed.title, itemType, parsed.year, now, now);
+  `).run(id, parsed.title, type, parsed.year, now, now);
+
+  // Update cache
+  cache.set(cacheKey(normTitle, type, parsed.year), id);
+  cache.set(cacheKey(normTitle, type, null), id);
 
   log.info('Created new media item', {
     id,
     title: parsed.title,
-    type: itemType,
+    type,
     year: parsed.year,
   });
 
   return id;
 }
+
+// ---------------------------------------------------------------------------
+// Database Operations — Media Source Upsert
+// ---------------------------------------------------------------------------
 
 /**
  * Upsert a media_source record using the unique index on
@@ -333,11 +368,10 @@ export async function findOrCreateMediaItem(parsed: ParsedMedia): Promise<string
  * @param file - The discovered file from a scanner
  * @returns Whether the source is new and its ID
  */
-export async function upsertMediaSource(
+async function upsertMediaSource(
   mediaItemId: string,
   file: GenericDiscoveredFile,
 ): Promise<{ isNew: boolean; sourceId: string }> {
-  // Check if a source already exists at this path
   interface ExistingSource {
     id: string;
     file_size: number;
@@ -349,7 +383,6 @@ export async function upsertMediaSource(
   `).get(file.sourceType, file.filePath) as ExistingSource | null;
 
   if (existing) {
-    // Update if file size has changed
     if (existing.file_size !== file.fileSize) {
       const now = new Date().toISOString();
       db.prepare(`
@@ -411,13 +444,13 @@ export async function upsertMediaSource(
  * Main reconciliation entry point. Takes discovered files from a scanner
  * run, reconciles them with the database, and returns a summary.
  *
+ * Uses an in-memory cache for media item lookups to avoid the N+1
+ * query pattern that caused a 48GB memory leak.
+ *
  * For each file:
  * 1. Parse the filename into structured metadata
- * 2. Find or create a matching media_item
+ * 2. Find or create a matching media_item (via cache)
  * 3. Upsert the media_source record
- *
- * Emits SSE events for newly discovered items and tracks
- * new vs updated counts.
  *
  * @param files - Array of discovered files from any scanner
  * @param sourceType - The source type being reconciled
@@ -435,6 +468,9 @@ export async function reconcileFiles(
   };
 
   log.info(`Starting reconciliation for ${files.length} ${sourceType} files`);
+
+  // Build in-memory cache ONCE — eliminates 39,877 × N row queries
+  const cache = buildMediaItemCache();
 
   const BATCH_SIZE = 500;
 
@@ -455,8 +491,8 @@ export async function reconcileFiles(
             continue;
           }
 
-          // Step 2: Find or create the media_item
-          const mediaItemId = await findOrCreateMediaItem(parsed);
+          // Step 2: Find or create the media_item (cached — O(1) lookup)
+          const mediaItemId = findOrCreateMediaItemCached(parsed, cache);
 
           // Step 3: Upsert the media_source
           const { isNew, sourceId } = await upsertMediaSource(mediaItemId, file);
@@ -505,3 +541,4 @@ export async function reconcileFiles(
 
   return result;
 }
+

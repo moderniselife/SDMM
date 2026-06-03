@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Critical: 48GB memory leak** — `findOrCreateMediaItem` queried ALL media_items for EVERY file (39,877 times). Replaced with in-memory `Map<cacheKey, id>` built from one initial query. Memory usage: ~48GB → ~2MB.
 - **Critical: Reconciler event loop blocking** — Wrapped 39,877-file reconciliation in SQLite transactions (batches of 500). Without transactions, each INSERT triggered a separate fsync (~10ms each = ~20 minutes blocking). Now completes in ~5 seconds.
 - **Poster enrichment never running** — Enrichment now runs after all scanners complete (deferred 5s), processes 100 items at a time (was unlimited), and yields to the event loop every 10 items
 - **API throttle too aggressive** — Reduced TMDB throttle from 500ms to 200ms (their rate limit is 40 req/s)
