@@ -10,7 +10,7 @@
 
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import type { ImportJob, ImportAction } from '@/types';
+import type { ImportAction } from '@/types';
 import { eventBus } from '../events';
 
 // ---------------------------------------------------------------------------
