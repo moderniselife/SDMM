@@ -85,16 +85,17 @@ app.route('/api', sseRoutes);
 // =============================================================================
 
 // Serve frontend static assets from /app/frontend/dist
+// Note: root is resolved relative to process CWD (/app), not the source file
 app.use(
   '/*',
   serveStatic({
-    root: '../frontend/dist',
+    root: './frontend/dist',
     rewriteRequestPath: (path) => path,
   })
 );
 
 // SPA fallback — serve index.html for any non-API route that doesn't match a static file
-app.get('*', serveStatic({ path: '../frontend/dist/index.html' }));
+app.get('*', serveStatic({ path: './frontend/dist/index.html' }));
 
 // =============================================================================
 // Global Error Handler
