@@ -2,10 +2,9 @@
  * SchroDrive Media Manager — Plex Routes
  *
  * Endpoints for interacting with the Plex Media Server:
- * library refresh, section listing, and search.
+ * library refresh, section listing, search, and library browsing.
  *
- * External Plex interactions use placeholder functions
- * that will be implemented by the services layer.
+ * All Plex interactions are delegated to the PlexClient singleton.
  *
  * @module routes/plex
  */
@@ -14,6 +13,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { logAudit } from '../services/audit';
 import { createLogger } from '../utils/logger';
+import { plexClient } from '../services/integrations/plex-client';
+import type { PlexSection, PlexSearchResult, PlexSectionItem } from '../services/integrations/plex-client';
 import type { ApiResponse } from '../types';
 
 const log = createLogger('plex');
@@ -21,60 +22,11 @@ const log = createLogger('plex');
 export const plexRoutes = new Hono();
 
 // =============================================================================
-// Placeholder Service Functions
-// =============================================================================
-
-/** Plex library section. */
-interface PlexSection {
-  id: number;
-  title: string;
-  type: string;
-  agent: string;
-  scanner: string;
-  language: string;
-}
-
-/** Plex search result. */
-interface PlexSearchResult {
-  ratingKey: string;
-  title: string;
-  year: number | null;
-  type: string;
-  thumb: string | null;
-}
-
-/**
- * Placeholder: Triggers a Plex library scan.
- * Will be implemented by the Plex service module.
- */
-async function triggerPlexScan(_sectionId?: number): Promise<void> {
-  log.warn('Plex service not yet implemented — scan request logged only');
-}
-
-/**
- * Placeholder: Lists Plex library sections.
- * Will be implemented by the Plex service module.
- */
-async function getPlexSections(): Promise<PlexSection[]> {
-  log.warn('Plex service not yet implemented — returning empty sections');
-  return [];
-}
-
-/**
- * Placeholder: Searches Plex library.
- * Will be implemented by the Plex service module.
- */
-async function searchPlex(_query: string): Promise<PlexSearchResult[]> {
-  log.warn('Plex service not yet implemented — returning empty results');
-  return [];
-}
-
-// =============================================================================
 // Validation Schemas
 // =============================================================================
 
 const refreshSchema = z.object({
-  sectionId: z.number().int().optional(),
+  sectionId: z.string().optional(),
 }).optional();
 
 // =============================================================================
@@ -89,7 +41,7 @@ const refreshSchema = z.object({
  */
 plexRoutes.post('/plex/refresh', async (c) => {
   try {
-    let sectionId: number | undefined;
+    let sectionId: string | undefined;
 
     try {
       const body = await c.req.json();
@@ -101,17 +53,23 @@ plexRoutes.post('/plex/refresh', async (c) => {
       // Empty body is acceptable — refresh all sections
     }
 
-    await triggerPlexScan(sectionId);
+    if (sectionId) {
+      await plexClient.refreshSection(sectionId);
+    } else {
+      await plexClient.refreshAll();
+    }
 
     logAudit(
       'plex.refresh',
       'plex',
-      sectionId ? String(sectionId) : null,
+      sectionId ?? null,
       sectionId ? `Refreshing section ${sectionId}` : 'Refreshing all sections',
       'user'
     );
 
-    return c.json<ApiResponse<{ refreshed: true; sectionId?: number }>>({
+    log.info('Plex refresh triggered', { sectionId: sectionId ?? 'all' });
+
+    return c.json<ApiResponse<{ refreshed: true; sectionId?: string }>>({
       success: true,
       data: { refreshed: true, sectionId },
       timestamp: new Date().toISOString(),
@@ -139,7 +97,7 @@ plexRoutes.post('/plex/refresh', async (c) => {
  */
 plexRoutes.get('/plex/sections', async (c) => {
   try {
-    const sections = await getPlexSections();
+    const sections = await plexClient.getSections();
 
     return c.json<ApiResponse<PlexSection[]>>({
       success: true,
@@ -179,7 +137,7 @@ plexRoutes.get('/plex/search', async (c) => {
       }, 400);
     }
 
-    const results = await searchPlex(query.trim());
+    const results = await plexClient.search(query.trim());
 
     return c.json<ApiResponse<PlexSearchResult[]>>({
       success: true,
@@ -193,6 +151,88 @@ plexRoutes.get('/plex/search', async (c) => {
     return c.json<ApiResponse<never>>({
       success: false,
       error: 'Failed to search Plex library',
+      timestamp: new Date().toISOString(),
+    }, 500);
+  }
+});
+
+// =============================================================================
+// GET /api/plex/library/sync
+// =============================================================================
+
+/**
+ * GET /api/plex/library/sync
+ *
+ * Triggers a full Plex library sync by refreshing all sections.
+ * This is a convenience endpoint for bulk library synchronisation.
+ */
+plexRoutes.get('/plex/library/sync', async (c) => {
+  try {
+    await plexClient.refreshAll();
+
+    logAudit(
+      'plex.library.sync',
+      'plex',
+      null,
+      'Full Plex library sync triggered',
+      'user'
+    );
+
+    log.info('Full Plex library sync triggered');
+
+    return c.json<ApiResponse<{ synced: true }>>({
+      success: true,
+      data: { synced: true },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    log.error('Failed to sync Plex library', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return c.json<ApiResponse<never>>({
+      success: false,
+      error: 'Failed to sync Plex library',
+      timestamp: new Date().toISOString(),
+    }, 500);
+  }
+});
+
+// =============================================================================
+// GET /api/plex/library/:sectionId
+// =============================================================================
+
+/**
+ * GET /api/plex/library/:sectionId
+ *
+ * Returns all items from a specific Plex library section.
+ */
+plexRoutes.get('/plex/library/:sectionId', async (c) => {
+  try {
+    const sectionId = c.req.param('sectionId');
+
+    if (!sectionId) {
+      return c.json<ApiResponse<never>>({
+        success: false,
+        error: 'Section ID parameter is required',
+        timestamp: new Date().toISOString(),
+      }, 400);
+    }
+
+    const items = await plexClient.getSectionItems(sectionId);
+
+    return c.json<ApiResponse<PlexSectionItem[]>>({
+      success: true,
+      data: items,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    log.error('Failed to fetch Plex section items', {
+      error: err instanceof Error ? err.message : String(err),
+      sectionId: c.req.param('sectionId'),
+    });
+    return c.json<ApiResponse<never>>({
+      success: false,
+      error: 'Failed to fetch Plex library section items',
       timestamp: new Date().toISOString(),
     }, 500);
   }

@@ -44,6 +44,17 @@ export interface PlexMetadata {
   addedAt?: number;
 }
 
+/** Plex library section item (returned by section browsing and recently added). */
+export interface PlexSectionItem {
+  ratingKey: string;
+  title: string;
+  year: number | null;
+  type: string;
+  thumb: string | null;
+  addedAt: number;
+  duration: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -192,6 +203,83 @@ export class PlexClient {
     }
 
     return results;
+  }
+
+  /**
+   * Gets all items in a Plex library section.
+   *
+   * Calls GET /library/sections/{sectionId}/all and returns an array
+   * of items with their key metadata fields.
+   *
+   * @param sectionId - The section key/ID to browse
+   * @returns Array of items in the section
+   */
+  async getSectionItems(sectionId: string): Promise<PlexSectionItem[]> {
+    interface SectionItemsResponse {
+      MediaContainer: {
+        Metadata?: Array<{
+          ratingKey: string;
+          title: string;
+          year?: number;
+          type: string;
+          thumb?: string;
+          addedAt?: number;
+          duration?: number;
+        }>;
+      };
+    }
+
+    const data = await this.request<SectionItemsResponse>(
+      `/library/sections/${sectionId}/all`,
+    );
+
+    return (data.MediaContainer?.Metadata ?? []).map((item) => ({
+      ratingKey: item.ratingKey,
+      title: item.title,
+      year: item.year ?? null,
+      type: item.type,
+      thumb: item.thumb ?? null,
+      addedAt: item.addedAt ?? 0,
+      duration: item.duration ?? null,
+    }));
+  }
+
+  /**
+   * Gets recently added items across all libraries.
+   *
+   * Calls GET /library/recentlyAdded with configurable result count.
+   *
+   * @param count - Maximum number of recently added items to return (default: 50)
+   * @returns Array of recently added items
+   */
+  async getRecentlyAdded(count: number = 50): Promise<PlexSectionItem[]> {
+    interface RecentlyAddedResponse {
+      MediaContainer: {
+        Metadata?: Array<{
+          ratingKey: string;
+          title: string;
+          year?: number;
+          type: string;
+          thumb?: string;
+          addedAt?: number;
+          duration?: number;
+        }>;
+      };
+    }
+
+    const data = await this.request<RecentlyAddedResponse>(
+      `/library/recentlyAdded?X-Plex-Container-Start=0&X-Plex-Container-Size=${count}`,
+    );
+
+    return (data.MediaContainer?.Metadata ?? []).map((item) => ({
+      ratingKey: item.ratingKey,
+      title: item.title,
+      year: item.year ?? null,
+      type: item.type,
+      thumb: item.thumb ?? null,
+      addedAt: item.addedAt ?? 0,
+      duration: item.duration ?? null,
+    }));
   }
 
   /**

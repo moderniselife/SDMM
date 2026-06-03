@@ -9,8 +9,11 @@
  */
 
 import { Hono } from 'hono';
+import { statfsSync } from 'node:fs';
 import { db } from '../db/connection';
 import { createLogger } from '../utils/logger';
+import { config } from '../config';
+import { tautulliClient } from '../services/integrations/tautulli-client';
 import type { ApiResponse, DashboardStats, AuditLog } from '../types';
 
 const log = createLogger('dashboard');
@@ -22,7 +25,7 @@ export const dashboardRoutes = new Hono();
  *
  * Returns a summary of the entire system state for the dashboard view.
  */
-dashboardRoutes.get('/dashboard', (c) => {
+dashboardRoutes.get('/dashboard', async (c) => {
   try {
     // Count media sources by type
     const countByType = (type: string): number => {
@@ -46,17 +49,25 @@ dashboardRoutes.get('/dashboard', (c) => {
       .get();
     const totalOptimised = optimisedRow?.count ?? 0;
 
-    // Storage — sum file sizes by source type
+    // Storage — sum file sizes for local sources
     const storageRow = db
-      .query<{ total: number | null }, [string]>(
+      .query<{ total: number | null }, []>(
         "SELECT SUM(file_size) as total FROM media_sources WHERE source_type = 'local'"
       )
-      .get('local');
+      .get();
     const storageUsed = storageRow?.total ?? 0;
 
-    // We can't reliably get free space from SQLite, so return 0 and let the
-    // services layer fill this in with actual filesystem stats when available
-    const storageFree = 0;
+    // Filesystem free space from the library directory
+    let storageFree = 0;
+    try {
+      const fsStats = statfsSync(config.paths.library);
+      storageFree = fsStats.bfree * fsStats.bsize;
+    } catch (fsErr) {
+      log.warn('Unable to read filesystem stats for library path', {
+        path: config.paths.library,
+        error: fsErr instanceof Error ? fsErr.message : String(fsErr),
+      });
+    }
 
     // Active encode jobs
     const encodesRow = db
@@ -85,6 +96,16 @@ dashboardRoutes.get('/dashboard', (c) => {
       )
       .all();
 
+    // Preservation suggestions from Tautulli
+    let preservationSuggestions: unknown[] = [];
+    try {
+      preservationSuggestions = await tautulliClient.getPreservationSuggestions();
+    } catch (tautErr) {
+      log.warn('Failed to fetch preservation suggestions from Tautulli', {
+        error: tautErr instanceof Error ? tautErr.message : String(tautErr),
+      });
+    }
+
     const data: DashboardStats = {
       totalLocal,
       totalRealDebrid,
@@ -95,7 +116,7 @@ dashboardRoutes.get('/dashboard', (c) => {
       activeEncodes,
       activeDownloads,
       recentActivity,
-      preservationSuggestions: [],
+      preservationSuggestions,
     };
 
     const response: ApiResponse<DashboardStats> = {
