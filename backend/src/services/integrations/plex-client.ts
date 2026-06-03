@@ -55,6 +55,16 @@ export interface PlexSectionItem {
   duration: number | null;
 }
 
+/** File path information from a Plex media item. */
+export interface PlexMediaFile {
+  ratingKey: string;
+  title: string;
+  filePath: string;
+  fileSize: number;
+  duration: number;
+  videoResolution: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -326,6 +336,94 @@ export class PlexClient {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Gets children of a Plex item (seasons of a show, episodes of a season).
+   *
+   * @param ratingKey - The parent item's rating key
+   * @returns Array of child items
+   */
+  async getChildren(ratingKey: string): Promise<PlexSectionItem[]> {
+    interface ChildrenResponse {
+      MediaContainer: {
+        Metadata?: Array<{
+          ratingKey: string;
+          title: string;
+          year?: number;
+          type: string;
+          thumb?: string;
+          addedAt?: number;
+          duration?: number;
+          index?: number;
+          parentTitle?: string;
+        }>;
+      };
+    }
+
+    const data = await this.request<ChildrenResponse>(
+      `/library/metadata/${ratingKey}/children`,
+    );
+
+    return (data.MediaContainer?.Metadata ?? []).map((item) => ({
+      ratingKey: item.ratingKey,
+      title: item.title,
+      year: item.year ?? null,
+      type: item.type,
+      thumb: item.thumb ?? null,
+      addedAt: item.addedAt ?? 0,
+      duration: item.duration ?? null,
+    }));
+  }
+
+  /**
+   * Gets the actual media file paths for a Plex item.
+   * Parses the Media[].Part[] structure from Plex metadata.
+   *
+   * @param ratingKey - The item's rating key
+   * @returns Array of file path details
+   */
+  async getMediaFiles(ratingKey: string): Promise<PlexMediaFile[]> {
+    interface MediaFilesResponse {
+      MediaContainer: {
+        Metadata?: Array<{
+          ratingKey: string;
+          title: string;
+          Media?: Array<{
+            videoResolution?: string;
+            duration?: number;
+            Part?: Array<{
+              file?: string;
+              size?: number;
+            }>;
+          }>;
+        }>;
+      };
+    }
+
+    const data = await this.request<MediaFilesResponse>(
+      `/library/metadata/${ratingKey}`,
+    );
+
+    const files: PlexMediaFile[] = [];
+    for (const item of data.MediaContainer?.Metadata ?? []) {
+      for (const media of item.Media ?? []) {
+        for (const part of media.Part ?? []) {
+          if (part.file) {
+            files.push({
+              ratingKey: item.ratingKey,
+              title: item.title,
+              filePath: part.file,
+              fileSize: part.size ?? 0,
+              duration: media.duration ?? 0,
+              videoResolution: media.videoResolution ?? null,
+            });
+          }
+        }
+      }
+    }
+
+    return files;
   }
 }
 

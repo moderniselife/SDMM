@@ -194,18 +194,81 @@ dashboardRoutes.get('/activity', (c) => {
 /**
  * GET /api/suggestions/preservation
  *
- * Returns cloud media items that are frequently watched and should be
- * considered for local preservation.
+ * Returns cloud media items that should be considered for local
+ * preservation. Uses Tautulli watch data when available, otherwise
+ * falls back to heuristics (popular shows, large files, etc.).
  */
 dashboardRoutes.get('/suggestions/preservation', async (c) => {
   try {
+    // Try Tautulli first
     let suggestions: unknown[] = [];
     try {
-      suggestions = await tautulliClient.getPreservationSuggestions();
+      const tautulliSuggestions = await tautulliClient.getPreservationSuggestions();
+      if (tautulliSuggestions.length > 0) {
+        suggestions = tautulliSuggestions;
+      }
     } catch (tautErr) {
-      log.warn('Failed to fetch preservation suggestions from Tautulli', {
+      log.debug('Tautulli not available for preservation suggestions', {
         error: tautErr instanceof Error ? tautErr.message : String(tautErr),
       });
+    }
+
+    // Fallback: database-driven suggestions when Tautulli is unavailable or empty
+    if (suggestions.length === 0) {
+      interface SuggestionRow {
+        id: string;
+        title: string;
+        type: string;
+        year: number | null;
+        poster_url: string | null;
+        source_count: number;
+        total_size: number;
+      }
+
+      // Find cloud-only items worth preserving:
+      // - Items with only cloud sources (no local copy)
+      // - Prioritise items with multiple episodes/sources (popular shows)
+      // - Prioritise large files (high quality, worth keeping)
+      const rows = db
+        .prepare(`
+          SELECT
+            mi.id,
+            mi.title,
+            mi.type,
+            mi.year,
+            mi.poster_url,
+            COUNT(ms.id) as source_count,
+            SUM(ms.file_size) as total_size
+          FROM media_items mi
+          INNER JOIN media_sources ms ON ms.media_item_id = mi.id
+          WHERE ms.source_type IN ('realdebrid', 'torbox')
+            AND mi.id NOT IN (
+              SELECT DISTINCT media_item_id
+              FROM media_sources
+              WHERE source_type = 'local'
+            )
+          GROUP BY mi.id
+          ORDER BY
+            COUNT(ms.id) DESC,
+            SUM(ms.file_size) DESC
+          LIMIT 20
+        `)
+        .all() as SuggestionRow[];
+
+      suggestions = rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        type: row.type,
+        year: row.year,
+        posterUrl: row.poster_url,
+        sourceCount: row.source_count,
+        totalSize: row.total_size,
+        reason: row.source_count > 3
+          ? `${row.source_count} episodes on cloud only`
+          : row.total_size > 5_000_000_000
+            ? 'Large file — worth preserving locally'
+            : 'Available on cloud only',
+      }));
     }
 
     const response: ApiResponse<typeof suggestions> = {

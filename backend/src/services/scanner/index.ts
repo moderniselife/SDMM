@@ -112,14 +112,21 @@ export async function scanAll(): Promise<ScanResult[]> {
       `Full scan complete: ${totalFiles} files found (${totalNew} new) across ${results.length} sources in ${totalDuration}ms`,
     );
 
-    // 4. Background metadata enrichment for new items (non-blocking)
+    // 4. Background metadata enrichment for new items (deferred, non-blocking)
+    //    Scheduled with a small delay so the scan result is returned first
+    //    and the event loop isn't blocked by enrichment API calls.
     if (allNewMediaItemIds.length > 0) {
-      log.info(`Triggering background metadata enrichment for ${allNewMediaItemIds.length} new source(s)...`);
-      enrichMetadata(allNewMediaItemIds).catch((err) => {
-        log.error('Background metadata enrichment failed', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-      });
+      log.info(`Scheduling background metadata enrichment for ${allNewMediaItemIds.length} new source(s) (5s delay)...`);
+      setTimeout(async () => {
+        try {
+          const enrichResult = await enrichMetadata();
+          log.info('Background enrichment complete', { ...enrichResult });
+        } catch (err) {
+          log.error('Background enrichment failed', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }, 5000);
     }
   } catch (err) {
     log.error('Error during full scan', {

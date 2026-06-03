@@ -436,33 +436,58 @@ export async function reconcileFiles(
 
   log.info(`Starting reconciliation for ${files.length} ${sourceType} files`);
 
-  for (const file of files) {
+  const BATCH_SIZE = 500;
+
+  for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    const batch = files.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(files.length / BATCH_SIZE);
+
+    db.exec('BEGIN TRANSACTION');
     try {
-      // Step 1: Parse the filename
-      const parsed = parseMediaFilename(file.fileName, file.filePath);
+      for (const file of batch) {
+        try {
+          // Step 1: Parse the filename
+          const parsed = parseMediaFilename(file.fileName, file.filePath);
 
-      if (!parsed.title) {
-        result.errors.push(`Could not parse title from: ${file.fileName}`);
-        continue;
+          if (!parsed.title) {
+            result.errors.push(`Could not parse title from: ${file.fileName}`);
+            continue;
+          }
+
+          // Step 2: Find or create the media_item
+          const mediaItemId = await findOrCreateMediaItem(parsed);
+
+          // Step 3: Upsert the media_source
+          const { isNew, sourceId } = await upsertMediaSource(mediaItemId, file);
+
+          if (isNew) {
+            result.newItems++;
+            result.newSourceIds.push(sourceId);
+          } else {
+            result.updatedItems++;
+          }
+        } catch (err) {
+          const msg = `Failed to reconcile "${file.fileName}": ${err instanceof Error ? err.message : String(err)}`;
+          log.error(msg);
+          result.errors.push(msg);
+        }
       }
-
-      // Step 2: Find or create the media_item
-      const mediaItemId = await findOrCreateMediaItem(parsed);
-
-      // Step 3: Upsert the media_source
-      const { isNew, sourceId } = await upsertMediaSource(mediaItemId, file);
-
-      if (isNew) {
-        result.newItems++;
-        result.newSourceIds.push(sourceId);
-      } else {
-        result.updatedItems++;
-      }
+      db.exec('COMMIT');
     } catch (err) {
-      const msg = `Failed to reconcile "${file.fileName}": ${err instanceof Error ? err.message : String(err)}`;
-      log.error(msg);
-      result.errors.push(msg);
+      try { db.exec('ROLLBACK'); } catch { /* already rolled back */ }
+      log.error(`Batch ${batchNum} failed, rolled back`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
+
+    // Log progress
+    if (i + BATCH_SIZE < files.length) {
+      log.info(`Reconciliation progress: batch ${batchNum}/${totalBatches} (${Math.min(i + BATCH_SIZE, files.length)}/${files.length} files)`);
+    }
+
+    // Yield to event loop between batches so HTTP requests can be served
+    await new Promise(resolve => setTimeout(resolve, 10));
   }
 
   // Emit SSE event for the completed reconciliation

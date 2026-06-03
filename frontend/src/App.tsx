@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import { LocalLibrary } from '@/pages/LocalLibrary';
+import { PlexLibrary } from '@/pages/PlexLibrary';
 import { RealDebridBrowser } from '@/pages/RealDebridBrowser';
 import { TorBoxBrowser } from '@/pages/TorBoxBrowser';
 import { Downloads } from '@/pages/Downloads';
@@ -23,6 +24,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/library" element={<LocalLibrary />} />
+            <Route path="/plex" element={<PlexLibrary />} />
             <Route path="/realdebrid" element={<RealDebridBrowser />} />
             <Route path="/torbox" element={<TorBoxBrowser />} />
             <Route path="/downloads" element={<Downloads />} />

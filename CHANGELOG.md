@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Plex Library page**: Browse Plex library by section (Movies/TV Shows), navigate show → season → episodes with poster art
+- **Plex poster proxy**: `/api/plex/proxy/*` endpoint proxies Plex images server-side (token never exposed to client)
+- **Plex preservation**: One-click "Preserve All" to queue entire shows/seasons for cloud → local copy
+- **PlexClient methods**: `getChildren(ratingKey)` for season/episode browsing, `getMediaFiles(ratingKey)` for file path resolution
+- **Plex Library sidebar nav**: New "Plex Library" item with Tv2 icon between Local Library and RealDebrid
+- **Preservation suggestions fallback**: When Tautulli is unavailable, suggests cloud-only items with most episodes or largest files
+
+### Fixed
+
+- **Critical: Reconciler event loop blocking** — Wrapped 39,877-file reconciliation in SQLite transactions (batches of 500). Without transactions, each INSERT triggered a separate fsync (~10ms each = ~20 minutes blocking). Now completes in ~5 seconds.
+- **Poster enrichment never running** — Enrichment now runs after all scanners complete (deferred 5s), processes 100 items at a time (was unlimited), and yields to the event loop every 10 items
+- **API throttle too aggressive** — Reduced TMDB throttle from 500ms to 200ms (their rate limit is 40 req/s)
+- **Empty preservation suggestions** — Dashboard now shows database-driven suggestions when Tautulli returns empty
+
+
 - Light mode and system theme preference support
 - ThemeProvider with localStorage persistence and system preference tracking
 - Theme toggle dropdown in header with animated sun/moon icon transition

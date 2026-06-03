@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Disc3,
+  Tv2,
 } from 'lucide-react';
 import { cn, formatBytes } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -26,6 +27,7 @@ import { fetchDashboard } from '@/lib/api';
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/library', label: 'Local Library', icon: HardDrive },
+  { to: '/plex', label: 'Plex Library', icon: Tv2 },
   { to: '/realdebrid', label: 'RealDebrid', icon: Cloud },
   { to: '/torbox', label: 'TorBox', icon: Package },
   { to: '/downloads', label: 'Downloads', icon: Download },

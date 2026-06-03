@@ -52,7 +52,7 @@ interface PlexMatchRow {
 // ---------------------------------------------------------------------------
 
 /** Delay between API calls to avoid rate-limiting (milliseconds). */
-const API_THROTTLE_MS = 500;
+const API_THROTTLE_MS = 200;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,6 +171,7 @@ export async function enrichMetadata(mediaItemIds?: string[]): Promise<EnrichRes
       FROM media_items
       WHERE poster_url IS NULL
       ORDER BY created_at DESC
+      LIMIT 100
     `).all() as MediaItemRow[];
   }
 
@@ -309,6 +310,11 @@ export async function enrichMetadata(mediaItemIds?: string[]): Promise<EnrichRes
 
       // Throttle between API calls to be a good citizen
       await sleep(API_THROTTLE_MS);
+
+      // Yield to event loop every 10 items so HTTP handlers aren't starved
+      if ((result.enriched + result.skipped + result.errors) % 10 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
     } catch (err) {
       result.errors++;
       log.error('Enrichment failed for item', {

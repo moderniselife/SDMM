@@ -217,3 +217,66 @@ export async function searchPlexForMatch(query: string): Promise<PlexSearchResul
   const res = await api.get('plex/search', { searchParams: { q: query } }).json<ApiResponse<PlexSearchResult[]>>();
   return res.data;
 }
+
+// ── Plex Library ──────────────────────────────────────────
+
+export interface PlexSection {
+  key: string;
+  title: string;
+  type: string;
+  agent: string;
+  scanner: string;
+  uuid: string;
+}
+
+export interface PlexSectionItem {
+  ratingKey: string;
+  title: string;
+  year: number | null;
+  type: string;
+  thumb: string | null;
+  addedAt: number;
+  duration: number | null;
+}
+
+export interface PlexMediaFile {
+  ratingKey: string;
+  title: string;
+  filePath: string;
+  fileSize: number;
+  duration: number;
+  videoResolution: string | null;
+}
+
+export interface PreserveResult {
+  title: string;
+  totalFiles: number;
+  jobsCreated: number;
+  alreadyLocal: number;
+  errors: string[];
+}
+
+export async function fetchPlexSections(): Promise<PlexSection[]> {
+  const res = await api.get('plex/sections').json<ApiResponse<PlexSection[]>>();
+  return res.data;
+}
+
+export async function fetchPlexSectionItems(sectionId: string): Promise<PlexSectionItem[]> {
+  const res = await api.get(`plex/library/${sectionId}`).json<ApiResponse<PlexSectionItem[]>>();
+  return res.data;
+}
+
+export async function fetchPlexChildren(ratingKey: string): Promise<PlexSectionItem[]> {
+  const res = await api.get(`plex/item/${ratingKey}/children`).json<ApiResponse<PlexSectionItem[]>>();
+  return res.data;
+}
+
+export async function fetchPlexFiles(ratingKey: string): Promise<PlexMediaFile[]> {
+  const res = await api.get(`plex/item/${ratingKey}/files`).json<ApiResponse<PlexMediaFile[]>>();
+  return res.data;
+}
+
+export async function preservePlexItem(ratingKey: string): Promise<PreserveResult> {
+  const res = await api.post(`plex/preserve/${ratingKey}`).json<ApiResponse<PreserveResult>>();
+  return res.data;
+}
