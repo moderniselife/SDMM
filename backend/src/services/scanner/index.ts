@@ -1,9 +1,9 @@
 /**
  * SchroDrive Media Manager — Scanner Orchestrator
  *
- * Coordinates all three scanners (local, RealDebrid, TorBox) and
- * provides scan-all and periodic-scan functionality with a lock
- * to prevent overlapping scans.
+ * Coordinates all three scanners (local, RealDebrid, TorBox),
+ * reconciles discovered files with the database, and triggers
+ * background metadata enrichment for new items.
  *
  * @module services/scanner
  */
@@ -11,8 +11,13 @@
 import { scanLocal } from './local-scanner';
 import { scanRealDebrid } from './rd-scanner';
 import { scanTorBox } from './torbox-scanner';
+import { reconcileFiles } from '../reconciler';
+import { enrichMetadata } from '../metadata';
 import { eventBus } from '../events';
+import { createLogger } from '../../utils/logger';
 import type { ScanResult } from './types';
+
+const log = createLogger('scanner');
 
 // ---------------------------------------------------------------------------
 // Scan Lock
@@ -29,7 +34,9 @@ let periodicScanTimer: ReturnType<typeof setInterval> | null = null;
 // ---------------------------------------------------------------------------
 
 /**
- * Runs all three scanners sequentially (local → RealDebrid → TorBox).
+ * Runs all three scanners sequentially (local → RealDebrid → TorBox),
+ * then reconciles discovered files with the database and triggers
+ * background metadata enrichment for newly discovered items.
  *
  * Uses a lock to prevent overlapping scans. If a scan is already in
  * progress, logs a warning and returns empty results.
@@ -38,40 +45,86 @@ let periodicScanTimer: ReturnType<typeof setInterval> | null = null;
  */
 export async function scanAll(): Promise<ScanResult[]> {
   if (scanInProgress) {
-    console.warn('[Scanner] Scan already in progress — skipping');
+    log.warn('Scan already in progress — skipping');
     return [];
   }
 
   scanInProgress = true;
   const results: ScanResult[] = [];
+  const allNewMediaItemIds: string[] = [];
 
   try {
-    console.log('[Scanner] Starting full scan of all sources...');
+    log.info('Starting full scan of all sources...');
 
-    // 1. Local scan
+    // 1. Local scan → reconcile
     const localScan = await scanLocal();
     results.push(localScan.result);
     eventBus.emitScanComplete('local', localScan.result.filesFound);
 
-    // 2. RealDebrid scan
+    if (localScan.files.length > 0) {
+      const localReconcile = await reconcileFiles(localScan.files, 'local');
+      log.info(`Local reconcile: ${localReconcile.newItems} new, ${localReconcile.updatedItems} updated`);
+      localScan.result.filesNew = localReconcile.newItems;
+      localScan.result.filesUpdated = localReconcile.updatedItems;
+
+      // Collect new source IDs to look up their media_item IDs for enrichment
+      if (localReconcile.newSourceIds.length > 0) {
+        allNewMediaItemIds.push(...localReconcile.newSourceIds);
+      }
+    }
+
+    // 2. RealDebrid scan → reconcile (read-only, do_not_process)
     const rdScan = await scanRealDebrid();
     results.push(rdScan.result);
     eventBus.emitScanComplete('realdebrid', rdScan.result.filesFound);
 
-    // 3. TorBox scan
+    if (rdScan.files.length > 0) {
+      const rdReconcile = await reconcileFiles(rdScan.files, 'realdebrid');
+      log.info(`RealDebrid reconcile: ${rdReconcile.newItems} new, ${rdReconcile.updatedItems} updated`);
+      rdScan.result.filesNew = rdReconcile.newItems;
+      rdScan.result.filesUpdated = rdReconcile.updatedItems;
+
+      if (rdReconcile.newSourceIds.length > 0) {
+        allNewMediaItemIds.push(...rdReconcile.newSourceIds);
+      }
+    }
+
+    // 3. TorBox scan → reconcile (read-only, do_not_process)
     const torboxScan = await scanTorBox();
     results.push(torboxScan.result);
     eventBus.emitScanComplete('torbox', torboxScan.result.filesFound);
 
+    if (torboxScan.files.length > 0) {
+      const torboxReconcile = await reconcileFiles(torboxScan.files, 'torbox');
+      log.info(`TorBox reconcile: ${torboxReconcile.newItems} new, ${torboxReconcile.updatedItems} updated`);
+      torboxScan.result.filesNew = torboxReconcile.newItems;
+      torboxScan.result.filesUpdated = torboxReconcile.updatedItems;
+
+      if (torboxReconcile.newSourceIds.length > 0) {
+        allNewMediaItemIds.push(...torboxReconcile.newSourceIds);
+      }
+    }
+
     const totalFiles = results.reduce((sum, r) => sum + r.filesFound, 0);
+    const totalNew = results.reduce((sum, r) => sum + r.filesNew, 0);
     const totalDuration = results.reduce((sum, r) => sum + r.durationMs, 0);
-    console.log(
-      `[Scanner] Full scan complete: ${totalFiles} total files found across ${results.length} sources in ${totalDuration}ms`,
+    log.info(
+      `Full scan complete: ${totalFiles} files found (${totalNew} new) across ${results.length} sources in ${totalDuration}ms`,
     );
+
+    // 4. Background metadata enrichment for new items (non-blocking)
+    if (allNewMediaItemIds.length > 0) {
+      log.info(`Triggering background metadata enrichment for ${allNewMediaItemIds.length} new source(s)...`);
+      enrichMetadata(allNewMediaItemIds).catch((err) => {
+        log.error('Background metadata enrichment failed', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
   } catch (err) {
-    console.error(
-      `[Scanner] Error during full scan: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    log.error('Error during full scan', {
+      error: err instanceof Error ? err.message : String(err),
+    });
   } finally {
     scanInProgress = false;
   }
@@ -93,23 +146,21 @@ export function startPeriodicScan(intervalMinutes: number = 15): void {
 
   const intervalMs = intervalMinutes * 60 * 1000;
 
-  console.log(
-    `[Scanner] Starting periodic scan every ${intervalMinutes} minutes`,
-  );
+  log.info(`Starting periodic scan every ${intervalMinutes} minutes`);
 
   // Run an initial scan immediately
   scanAll().catch((err) => {
-    console.error(
-      `[Scanner] Initial periodic scan failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    log.error('Initial periodic scan failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
   });
 
   // Then schedule recurring scans
   periodicScanTimer = setInterval(() => {
     scanAll().catch((err) => {
-      console.error(
-        `[Scanner] Periodic scan failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      log.error('Periodic scan failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     });
   }, intervalMs);
 }
@@ -121,7 +172,7 @@ export function stopPeriodicScan(): void {
   if (periodicScanTimer) {
     clearInterval(periodicScanTimer);
     periodicScanTimer = null;
-    console.log('[Scanner] Periodic scan stopped');
+    log.info('Periodic scan stopped');
   }
 }
 

@@ -15,6 +15,7 @@ import type {
   PaginatedResponse,
   ActivityEntry,
   PreservationSuggestion,
+  PlexSearchResult,
 } from './types';
 
 /** Pre-configured ky instance pointing at the backend proxy */
@@ -155,5 +156,21 @@ export async function fetchSettings(): Promise<AppSettings> {
 
 export async function updateSettings(settings: Partial<AppSettings>): Promise<AppSettings> {
   const res = await api.put('settings', { json: settings }).json<ApiResponse<AppSettings>>();
+  return res.data;
+}
+
+// ── Unmatched Media ────────────────────────────────────────
+
+export async function fetchUnmatched(): Promise<MediaItem[]> {
+  const res = await api.get('media/unmatched').json<ApiResponse<MediaItem[]>>();
+  return res.data;
+}
+
+export async function matchToPlex(mediaItemId: string, plexRatingKey: string): Promise<void> {
+  await api.post(`media/${mediaItemId}/match`, { json: { plexRatingKey } });
+}
+
+export async function searchPlexForMatch(query: string): Promise<PlexSearchResult[]> {
+  const res = await api.get('plex/search', { searchParams: { q: query } }).json<ApiResponse<PlexSearchResult[]>>();
   return res.data;
 }

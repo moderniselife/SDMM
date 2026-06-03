@@ -2,7 +2,7 @@
  * MediaDetail Page — Full detail view with hero, tabs for sources, encode history, and stats.
  */
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Copy, Zap, Shield, Trash2 } from 'lucide-react';
+import { ArrowLeft, Play, Copy, Zap, Shield, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,40 +12,33 @@ import { MediaBadge } from '@/components/media/MediaBadge';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { formatBytes, timeAgo } from '@/lib/utils';
 import { useState } from 'react';
-import type { MediaItem, MediaSource, EncodeJob } from '@/lib/types';
+import { useApi } from '@/hooks/useApi';
+import { fetchMediaById, copyToLocal, encodeToLocal, preserve } from '@/lib/api';
+import type { MediaSource, EncodeJob } from '@/lib/types';
 
-// ── Mock data ──────────────────────────────────────────────
-
-const mockMedia: MediaItem = {
-  id: '1',
-  title: 'Interstellar',
-  year: 2014,
-  mediaType: 'movie',
-  posterUrl: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-  resolution: '4K',
-  codec: 'HEVC',
-  sources: [
-    { id: 's1', mediaId: '1', sourceType: 'LOCAL', filePath: '/media/movies/Interstellar', fileName: 'Interstellar.2014.2160p.mkv', sizeBytes: 45_000_000_000, resolution: '4K', codec: 'HEVC', status: 'AVAILABLE', createdAt: '2026-01-15T10:00:00Z' },
-    { id: 's2', mediaId: '1', sourceType: 'LOCAL', filePath: '/media/optimised/Interstellar', fileName: 'Interstellar.2014.1080p.hevc.mkv', sizeBytes: 5_200_000_000, resolution: '1080p', codec: 'HEVC', status: 'OPTIMISED', createdAt: '2026-02-01T12:00:00Z' },
-    { id: 's3', mediaId: '1', sourceType: 'REALDEBRID', filePath: '/Movies/4K/Interstellar', fileName: 'Interstellar.2014.2160p.Remux.mkv', sizeBytes: 72_000_000_000, resolution: '4K', codec: 'H.264', status: 'AVAILABLE', createdAt: '2025-12-01T08:00:00Z' },
-  ],
-  status: 'AVAILABLE',
-  sizeBytes: 45_000_000_000,
-  addedAt: '2026-01-15T10:00:00Z',
-  updatedAt: '2026-02-01T12:00:00Z',
-};
-
-const mockEncodeHistory: EncodeJob[] = [
-  {
-    id: 'eh1', mediaId: '1', sourceId: 's1',
-    inputFile: 'Interstellar.2014.2160p.mkv',
-    outputFile: 'Interstellar.2014.1080p.hevc.mkv',
-    encoder: 'ffmpeg', preset: 'slow', status: 'COMPLETED',
-    progress: 100, inputSize: 45_000_000_000, outputSize: 5_200_000_000,
-    startedAt: '2026-01-20T08:00:00Z', completedAt: '2026-01-20T14:30:00Z',
-    createdAt: '2026-01-20T07:55:00Z',
-  },
-];
+function DetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-8 w-16 animate-pulse rounded bg-muted" />
+      <div className="flex flex-col gap-6 md:flex-row">
+        <div className="h-72 w-48 shrink-0 animate-pulse rounded-xl bg-muted" />
+        <div className="flex-1 space-y-4">
+          <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+          <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+          <div className="h-px w-full bg-muted" />
+          <div className="grid grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 w-12 animate-pulse rounded bg-muted" />
+                <div className="h-6 w-10 animate-pulse rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function SourceRow({ source, onAction }: { source: MediaSource; onAction: (action: string, source: MediaSource) => void }) {
   return (
@@ -92,17 +85,20 @@ function SourceRow({ source, onAction }: { source: MediaSource; onAction: (actio
 }
 
 export function MediaDetail() {
-  const { id: _id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { data: media, loading, error } = useApi(
+    () => fetchMediaById(id!),
+    [id],
+  );
   const [confirmAction, setConfirmAction] = useState<{
     open: boolean;
     title: string;
     desc: string;
     variant: 'default' | 'destructive';
+    sourceId?: string;
+    action?: string;
   }>({ open: false, title: '', desc: '', variant: 'default' });
-
-  // In production, fetch by id
-  const media = mockMedia;
 
   const handleAction = (action: string, source: MediaSource) => {
     const labels: Record<string, string> = {
@@ -116,20 +112,57 @@ export function MediaDetail() {
       title: labels[action] ?? action,
       desc: `Are you sure you want to ${(labels[action] ?? action).toLowerCase()} "${source.fileName}"?`,
       variant: action === 'delete' ? 'destructive' : 'default',
+      sourceId: source.id,
+      action,
     });
   };
 
+  const handleConfirm = async () => {
+    if (!confirmAction.sourceId || !confirmAction.action) return;
+    try {
+      switch (confirmAction.action) {
+        case 'copy':
+          await copyToLocal(confirmAction.sourceId);
+          break;
+        case 'encode':
+          await encodeToLocal(confirmAction.sourceId);
+          break;
+        case 'preserve':
+          await preserve(confirmAction.sourceId);
+          break;
+      }
+    } catch {
+      // Error handling could be improved with toast notifications
+    }
+  };
+
+  if (loading) return <DetailSkeleton />;
+
+  if (error || !media) {
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-1.5 h-4 w-4" />
+          Back
+        </Button>
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error ?? 'Media item not found.'}
+        </div>
+      </div>
+    );
+  }
+
+  const encodeHistory: EncodeJob[] = [];
+
   return (
     <div className="space-y-6">
-      {/* Back button */}
       <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
         <ArrowLeft className="mr-1.5 h-4 w-4" />
         Back
       </Button>
 
-      {/* Hero Section */}
       <div className="flex flex-col gap-6 md:flex-row">
-        {/* Poster */}
         <div className="w-full md:w-48 shrink-0">
           {media.posterUrl ? (
             <img src={media.posterUrl} alt={media.title} className="w-full rounded-xl shadow-lg" />
@@ -140,7 +173,6 @@ export function MediaDetail() {
           )}
         </div>
 
-        {/* Info */}
         <div className="flex-1 space-y-4">
           <div>
             <h1 className="text-3xl font-bold">{media.title}</h1>
@@ -187,7 +219,6 @@ export function MediaDetail() {
         </div>
       </div>
 
-      {/* Tabs */}
       <Tabs defaultValue="sources">
         <TabsList>
           <TabsTrigger value="sources">Sources</TabsTrigger>
@@ -223,13 +254,13 @@ export function MediaDetail() {
         <TabsContent value="encode-history">
           <Card>
             <CardContent className="pt-6">
-              {mockEncodeHistory.length === 0 ? (
+              {encodeHistory.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">
                   No encode history for this media item.
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {mockEncodeHistory.map((job) => (
+                  {encodeHistory.map((job) => (
                     <div key={job.id} className="rounded-lg border border-border bg-muted/20 p-4">
                       <div className="flex items-start justify-between">
                         <div>
@@ -259,15 +290,15 @@ export function MediaDetail() {
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-foreground">7</p>
+                  <p className="text-3xl font-bold text-foreground">—</p>
                   <p className="text-sm text-muted-foreground">Total Plays</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-foreground">2 days ago</p>
+                  <p className="text-3xl font-bold text-foreground">—</p>
                   <p className="text-sm text-muted-foreground">Last Watched</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-foreground">19h 15m</p>
+                  <p className="text-3xl font-bold text-foreground">—</p>
                   <p className="text-sm text-muted-foreground">Total Watch Time</p>
                 </div>
               </div>
@@ -276,7 +307,6 @@ export function MediaDetail() {
         </TabsContent>
       </Tabs>
 
-      {/* Confirm Modal */}
       <ConfirmModal
         open={confirmAction.open}
         onOpenChange={(open) => setConfirmAction((prev) => ({ ...prev, open }))}
@@ -285,7 +315,7 @@ export function MediaDetail() {
         confirmLabel={confirmAction.title}
         variant={confirmAction.variant}
         requireTyped={confirmAction.variant === 'destructive' ? 'DELETE' : undefined}
-        onConfirm={() => { /* TODO: call API */ }}
+        onConfirm={handleConfirm}
       />
     </div>
   );

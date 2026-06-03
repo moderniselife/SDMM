@@ -13,6 +13,7 @@ import { Downloads } from '@/pages/Downloads';
 import { EncodeQueuePage } from '@/pages/EncodeQueuePage';
 import { MediaDetail } from '@/pages/MediaDetail';
 import { Settings } from '@/pages/Settings';
+import { UnmatchedMedia } from '@/pages/UnmatchedMedia';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/torbox" element={<TorBoxBrowser />} />
             <Route path="/downloads" element={<Downloads />} />
             <Route path="/encode-queue" element={<EncodeQueuePage />} />
+            <Route path="/unmatched" element={<UnmatchedMedia />} />
             <Route path="/media/:id" element={<MediaDetail />} />
             <Route path="/settings" element={<Settings />} />
           </Route>

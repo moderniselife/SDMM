@@ -10,6 +10,7 @@ import {
   Package,
   Download,
   Cpu,
+  HelpCircle,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -27,6 +28,7 @@ const navItems = [
   { to: '/torbox', label: 'TorBox', icon: Package },
   { to: '/downloads', label: 'Downloads', icon: Download },
   { to: '/encode-queue', label: 'Encode Queue', icon: Cpu },
+  { to: '/unmatched', label: 'Unmatched Media', icon: HelpCircle },
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const;
 
@@ -38,7 +40,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
 
-  // Mock storage stats (will be replaced by API data)
+  // TODO: Replace with real API data from dashboard stats
   const storageUsed = 3.2; // TB
   const storageTotal = 8.0; // TB
   const storagePercent = (storageUsed / storageTotal) * 100;

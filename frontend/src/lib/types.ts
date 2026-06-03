@@ -204,3 +204,12 @@ export interface MediaFilters {
   page: number;
   pageSize: number;
 }
+
+// ── Plex Search ────────────────────────────────────────────
+export interface PlexSearchResult {
+  ratingKey: string;
+  title: string;
+  year: number;
+  type: string;
+  thumb: string | null;
+}

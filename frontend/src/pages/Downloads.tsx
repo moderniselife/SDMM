@@ -2,7 +2,7 @@
  * Downloads Page — Add torrents and view download progress.
  */
 import { useState } from 'react';
-import { Upload, Link2, Globe, Download as DownloadIcon, CheckCircle2, XCircle, Pause, Clock } from 'lucide-react';
+import { Upload, Link2, Globe, Download as DownloadIcon, CheckCircle2, XCircle, Pause, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,67 +11,9 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatBytes, formatDuration } from '@/lib/utils';
+import { useApi } from '@/hooks/useApi';
+import { fetchDownloads, addMagnet, addTorrentUrl, uploadTorrent } from '@/lib/api';
 import type { Download } from '@/lib/types';
-
-// ── Mock data ──────────────────────────────────────────────
-
-const mockDownloads: Download[] = [
-  {
-    id: 'd1',
-    name: 'The.Matrix.1999.2160p.UHD.BluRay.Remux.mkv',
-    source: 'REALDEBRID',
-    status: 'DOWNLOADING',
-    progress: 73.5,
-    sizeBytes: 72_000_000_000,
-    downloadedBytes: 52_920_000_000,
-    speed: 45_000_000,
-    eta: 423,
-    addedAt: new Date(Date.now() - 30 * 60_000).toISOString(),
-  },
-  {
-    id: 'd2',
-    name: 'Inception.2010.1080p.BluRay.x264.mkv',
-    source: 'TORBOX',
-    status: 'DOWNLOADING',
-    progress: 31.2,
-    sizeBytes: 12_000_000_000,
-    downloadedBytes: 3_744_000_000,
-    speed: 28_000_000,
-    eta: 296,
-    addedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
-  },
-  {
-    id: 'd3',
-    name: 'Parasite.2019.1080p.BluRay.mkv',
-    source: 'REALDEBRID',
-    status: 'COMPLETED',
-    progress: 100,
-    sizeBytes: 8_500_000_000,
-    downloadedBytes: 8_500_000_000,
-    addedAt: new Date(Date.now() - 2 * 3600_000).toISOString(),
-    completedAt: new Date(Date.now() - 1.5 * 3600_000).toISOString(),
-  },
-  {
-    id: 'd4',
-    name: 'Fight.Club.1999.720p.BluRay.mkv',
-    source: 'QBITTORRENT',
-    status: 'FAILED',
-    progress: 45,
-    sizeBytes: 4_200_000_000,
-    downloadedBytes: 1_890_000_000,
-    addedAt: new Date(Date.now() - 5 * 3600_000).toISOString(),
-  },
-  {
-    id: 'd5',
-    name: 'Spirited.Away.2001.2160p.mkv',
-    source: 'TORBOX',
-    status: 'QUEUED',
-    progress: 0,
-    sizeBytes: 38_000_000_000,
-    downloadedBytes: 0,
-    addedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
-  },
-];
 
 const statusIcons: Record<string, React.ReactNode> = {
   DOWNLOADING: <DownloadIcon className="h-4 w-4 text-blue-400 badge-pulse" />,
@@ -81,9 +23,71 @@ const statusIcons: Record<string, React.ReactNode> = {
   QUEUED: <Clock className="h-4 w-4 text-slate-400" />,
 };
 
+function TableSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+          <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
+          <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+          <div className="h-1.5 w-32 animate-pulse rounded bg-muted" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Downloads() {
   const [magnetInput, setMagnetInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: downloads, loading, error, refetch } = useApi(fetchDownloads);
+
+  const handleAddMagnet = async () => {
+    if (!magnetInput.trim()) return;
+    setSubmitting(true);
+    try {
+      await addMagnet(magnetInput.trim());
+      setMagnetInput('');
+      refetch();
+    } catch {
+      // Could add error toast here
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAddUrl = async () => {
+    if (!urlInput.trim()) return;
+    setSubmitting(true);
+    try {
+      await addTorrentUrl(urlInput.trim());
+      setUrlInput('');
+      refetch();
+    } catch {
+      // Could add error toast here
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSubmitting(true);
+    try {
+      await uploadTorrent(file);
+      refetch();
+    } catch {
+      // Could add error toast here
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const downloadList = downloads ?? [];
 
   return (
     <div className="space-y-6">
@@ -117,9 +121,10 @@ export function Downloads() {
                   onChange={(e) => setMagnetInput(e.target.value)}
                   className="flex-1"
                   aria-label="Magnet link"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddMagnet()}
                 />
-                <Button disabled={!magnetInput.trim()}>
-                  <DownloadIcon className="mr-1.5 h-4 w-4" />
+                <Button disabled={!magnetInput.trim() || submitting} onClick={handleAddMagnet}>
+                  {submitting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <DownloadIcon className="mr-1.5 h-4 w-4" />}
                   Add
                 </Button>
               </div>
@@ -132,7 +137,14 @@ export function Downloads() {
                   <p className="mt-2 text-sm text-muted-foreground">
                     Drag and drop a .torrent file here, or click to browse
                   </p>
-                  <Input type="file" accept=".torrent" className="mt-3" aria-label="Upload torrent file" />
+                  <Input
+                    type="file"
+                    accept=".torrent"
+                    className="mt-3"
+                    aria-label="Upload torrent file"
+                    onChange={handleUploadFile}
+                    disabled={submitting}
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -145,9 +157,10 @@ export function Downloads() {
                   onChange={(e) => setUrlInput(e.target.value)}
                   className="flex-1"
                   aria-label="Torrent URL"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
                 />
-                <Button disabled={!urlInput.trim()}>
-                  <DownloadIcon className="mr-1.5 h-4 w-4" />
+                <Button disabled={!urlInput.trim() || submitting} onClick={handleAddUrl}>
+                  {submitting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <DownloadIcon className="mr-1.5 h-4 w-4" />}
                   Add
                 </Button>
               </div>
@@ -162,51 +175,65 @@ export function Downloads() {
           <CardTitle>Downloads</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">Status</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="w-24">Source</TableHead>
-                <TableHead className="w-32">Progress</TableHead>
-                <TableHead className="w-24 text-right">Size</TableHead>
-                <TableHead className="w-24 text-right">Speed</TableHead>
-                <TableHead className="w-20 text-right">ETA</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockDownloads.map((dl) => (
-                <TableRow key={dl.id}>
-                  <TableCell>{statusIcons[dl.status]}</TableCell>
-                  <TableCell>
-                    <p className="truncate max-w-[300px] text-sm font-medium">{dl.name}</p>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {dl.source}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <Progress value={dl.progress} className="h-1.5" />
-                      <span className="text-xs text-muted-foreground">
-                        {dl.progress.toFixed(1)}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {formatBytes(dl.sizeBytes)}
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {dl.speed ? `${formatBytes(dl.speed)}/s` : '—'}
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {dl.eta ? formatDuration(dl.eta) : '—'}
-                  </TableCell>
+          {error && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+          {loading ? (
+            <TableSkeleton />
+          ) : downloadList.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No downloads yet. Add a magnet link or torrent to get started.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">Status</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="w-24">Source</TableHead>
+                  <TableHead className="w-32">Progress</TableHead>
+                  <TableHead className="w-24 text-right">Size</TableHead>
+                  <TableHead className="w-24 text-right">Speed</TableHead>
+                  <TableHead className="w-20 text-right">ETA</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {downloadList.map((dl: Download) => (
+                  <TableRow key={dl.id}>
+                    <TableCell>{statusIcons[dl.status]}</TableCell>
+                    <TableCell>
+                      <p className="truncate max-w-[300px] text-sm font-medium">{dl.name}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {dl.source}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Progress value={dl.progress} className="h-1.5" />
+                        <span className="text-xs text-muted-foreground">
+                          {dl.progress.toFixed(1)}%
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {formatBytes(dl.sizeBytes)}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {dl.speed ? `${formatBytes(dl.speed)}/s` : '—'}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {dl.eta ? formatDuration(dl.eta) : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
