@@ -35,6 +35,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend: WatchStats, PlexMatch, and MediaItemDetail types
 - Frontend: MediaDetail watch stats tab shows real data (plays, last watched, watch time, unique viewers)
 - Frontend: MediaDetail encode history tab uses real API data
+- Backend: GET /api/activity route for audit log entries
+- Backend: GET /api/suggestions/preservation route for Tautulli-based suggestions
+
+### Fixed
+
+- Dashboard storage chart now shows real filesystem usage via statfsSync instead of 0 B
+- Sidebar storage bar fetches real data from dashboard API instead of hardcoded 3.2 TB / 8 TB
+- Reconciler filename parser now extracts show names from directory paths for episode files (e.g. "Vikings" from /shows/Vikings/Season 2/S02E10.mkv)
+- Frontend MediaItem/MediaSource types aligned with backend response shapes
+- MediaBadge case-insensitive lookup (backend returns lowercase source types)
+- fetchMedia parameter mapping fixed (source→sourceType, pageSize→limit)
+- MediaCard, MediaDetail, SearchBar handle optional resolution/codec/status fields
 
 ## [0.1.0] - 2026-06-03
 
