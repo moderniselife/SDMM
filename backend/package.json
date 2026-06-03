@@ -1,0 +1,23 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "db:migrate": "bun src/db/migrate.ts"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "zod": "^3.24.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.7.0"
+  }
+}
