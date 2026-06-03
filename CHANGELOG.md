@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Metadata enrichment service: Plex-first, TMDB-fallback strategy with bulk Plex library sync
 - Watch stats sync service: Tautulli watch statistics with single-item, bulk, and periodic sync modes
 - Worker wiring service: real DB-backed dependency injection callbacks for encode, download, and import workers
+- PlexClient: getSectionItems() and getRecentlyAdded() methods for library browsing
+- Plex routes: replaced stubs with real PlexClient calls (refresh, sections, search, library sync)
+- Dashboard: real filesystem storage stats via statfsSync, Tautulli preservation suggestions
+- Scanner→Reconciler bridge: discovered files now auto-upserted into database
+- Background metadata enrichment triggered after each scan for newly discovered items
+- Startup wiring: all workers, periodic scanner, watch sync, and Plex sync boot on server start
+- Graceful shutdown stops all background services before closing DB
+- Frontend: all 9 pages now use real API calls via useApi hook (no mock data remains)
+- Frontend: loading skeletons and error banners on all pages
+- New Unmatched Media page: browse unmatched items, search Plex, manually match with confirm UI
+- PlexSearchResult type and API functions for Plex matching workflow
 
 ## [0.1.0] - 2026-06-03
 
