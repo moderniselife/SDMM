@@ -19,6 +19,8 @@ interface UseCloudBrowserReturn {
   error: string | null;
   /** Total entries found (set when stream completes) */
   totalFound: number;
+  /** Status message (e.g. "reading directory..." during slow FUSE ops) */
+  statusMessage: string | null;
   /** Trigger a manual refetch */
   refetch: () => void;
 }
@@ -38,6 +40,7 @@ export function useCloudBrowser(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalFound, setTotalFound] = useState(0);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -51,6 +54,7 @@ export function useCloudBrowser(
     setLoading(true);
     setError(null);
     setTotalFound(0);
+    setStatusMessage('Connecting…');
 
     // Build SSE URL
     const params = new URLSearchParams();
@@ -82,8 +86,21 @@ export function useCloudBrowser(
       }
     }
 
+    // Handle heartbeat events (sent while readdir is in progress on FUSE)
+    es.addEventListener('heartbeat', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as { status: string };
+        setStatusMessage(data.status);
+      } catch {
+        setStatusMessage('Loading…');
+      }
+    });
+
     // Handle individual entry events
     es.addEventListener('entry', (e: MessageEvent) => {
+      // Clear the "reading directory" status once entries start arriving
+      setStatusMessage(null);
+
       try {
         const raw = JSON.parse(e.data) as {
           name: string;
@@ -122,6 +139,7 @@ export function useCloudBrowser(
         // Use accumulated count
       }
       setLoading(false);
+      setStatusMessage(null);
       es.close();
     });
 
@@ -148,6 +166,7 @@ export function useCloudBrowser(
           setLoading(false);
         }
       }
+      setStatusMessage(null);
       es.close();
     });
 
@@ -159,5 +178,5 @@ export function useCloudBrowser(
     };
   }, [sourceType, path, fetchKey]);
 
-  return { files, loading, error, totalFound, refetch };
+  return { files, loading, error, totalFound, statusMessage, refetch };
 }

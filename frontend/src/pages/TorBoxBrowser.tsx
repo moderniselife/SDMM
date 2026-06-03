@@ -42,7 +42,7 @@ export function TorBoxBrowser() {
     fileId?: string;
   }>({ open: false, title: '', desc: '', action: '' });
 
-  const { files, loading, error, totalFound } = useCloudBrowser('torbox', currentPath);
+  const { files, loading, error, totalFound, statusMessage } = useCloudBrowser('torbox', currentPath);
 
   const folders = files.filter((f) => f.isDirectory);
   const fileList = files.filter((f) => !f.isDirectory);
@@ -112,7 +112,7 @@ export function TorBoxBrowser() {
         {loading && (
           <span className="ml-2 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Loading… {totalFound > 0 && `(${totalFound} found)`}
+            {statusMessage ?? (totalFound > 0 ? `${totalFound} found…` : 'Loading…')}
           </span>
         )}
       </div>

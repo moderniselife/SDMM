@@ -13,7 +13,7 @@
 
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { readdir, stat, lstat, opendir } from 'fs/promises';
+import { readdir, stat, lstat } from 'fs/promises';
 import { join } from 'path';
 import { config } from '../config';
 import { createLogger } from '../utils/logger';
@@ -236,11 +236,35 @@ sourcesRoutes.get('/sources/:sourceType/browse', (c) => {
 
       log.info(`SSE browse started: ${sourceType} @ ${subPath ?? '/'}`);
 
-      // Use opendir for streaming iteration — entries are yielded
-      // one-by-one without buffering the entire directory
-      const dir = await opendir(targetPath);
+      // Send a heartbeat while readdir is in progress so the client
+      // knows the connection is alive during slow FUSE directory listings
+      let readdirDone = false;
+      const heartbeatInterval = setInterval(async () => {
+        if (readdirDone) return;
+        try {
+          await stream.writeSSE({
+            event: 'heartbeat',
+            data: JSON.stringify({ status: 'reading directory...' }),
+            id: 'hb',
+          });
+        } catch {
+          // Stream closed
+        }
+      }, 3000);
 
-      for await (const dirent of dir) {
+      // Use readdir (single bulk syscall) instead of opendir (per-entry syscall).
+      // On FUSE mounts, opendir's async iterator triggers a separate getdents
+      // syscall per yield, each causing a network round-trip. readdir fetches
+      // the full listing in one go, then we stream entries from memory via SSE.
+      let dirEntries;
+      try {
+        dirEntries = await readdir(targetPath, { withFileTypes: true });
+      } finally {
+        readdirDone = true;
+        clearInterval(heartbeatInterval);
+      }
+
+      for (const dirent of dirEntries) {
         // Skip hidden files
         if (dirent.name.startsWith('.')) continue;
 

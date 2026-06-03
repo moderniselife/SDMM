@@ -146,14 +146,18 @@ export function startPeriodicScan(intervalMinutes: number = 15): void {
 
   const intervalMs = intervalMinutes * 60 * 1000;
 
-  log.info(`Starting periodic scan every ${intervalMinutes} minutes`);
+  log.info(`Starting periodic scan every ${intervalMinutes} minutes (initial scan in 30s)`);
 
-  // Run an initial scan immediately
-  scanAll().catch((err) => {
-    log.error('Initial periodic scan failed', {
-      error: err instanceof Error ? err.message : String(err),
+  // Delay the initial scan so the HTTP server is responsive immediately.
+  // Without this delay, the scanner recursively walks FUSE mounts at
+  // startup, blocking the event loop and starving all API handlers.
+  setTimeout(() => {
+    scanAll().catch((err) => {
+      log.error('Initial periodic scan failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     });
-  });
+  }, 30_000);
 
   // Then schedule recurring scans
   periodicScanTimer = setInterval(() => {
