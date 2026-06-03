@@ -8,7 +8,7 @@
  * @module services/scanner/rd-scanner
  */
 
-import { readdir, stat, access, constants } from 'node:fs/promises';
+import { readdir, access, constants } from 'node:fs/promises';
 import path from 'node:path';
 import type { SourceType } from '@/types';
 import type { ScanResult } from './types';
@@ -26,8 +26,7 @@ const MEDIA_EXTENSIONS = new Set([
   '.m4v', '.mov', '.flv', '.webm', '.mpg', '.mpeg',
 ]);
 
-/** Minimum file size in bytes (100 MiB). */
-const MIN_FILE_SIZE = 104_857_600;
+
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,14 +67,17 @@ function isMediaFile(fileName: string): boolean {
 
 /**
  * Recursively walks the RealDebrid mount directory.
+ *
+ * Uses readdir({ withFileTypes: true }) to avoid stat() calls on FUSE
+ * mounts — stat() blocks the event loop for ages on cloud filesystems.
  */
 async function walkDirectory(
   dirPath: string,
   results: RDDiscoveredFile[],
 ): Promise<void> {
-  let entries: string[];
+  let entries;
   try {
-    entries = await readdir(dirPath);
+    entries = await readdir(dirPath, { withFileTypes: true });
   } catch (err) {
     console.warn(
       `[RDScanner] Unable to read directory "${dirPath}": ${err instanceof Error ? err.message : String(err)}`,
@@ -84,24 +86,23 @@ async function walkDirectory(
   }
 
   for (const entry of entries) {
-    const fullPath = path.join(dirPath, entry);
+    const fullPath = path.join(dirPath, entry.name);
 
-    let fileStat;
-    try {
-      fileStat = await stat(fullPath);
-    } catch {
-      // FUSE mounts can be flaky — skip inaccessible entries
-      continue;
-    }
-
-    if (fileStat.isDirectory()) {
-      await walkDirectory(fullPath, results);
-    } else if (fileStat.isFile() && isMediaFile(entry) && fileStat.size >= MIN_FILE_SIZE) {
+    // Use Dirent type info — no stat() needed for FUSE mounts
+    if (entry.isDirectory() || entry.isSymbolicLink()) {
+      // For symlinks, assume directory (common on FUSE mounts)
+      // Only recurse if it looks like a directory (no media extension)
+      if (entry.isDirectory() || !isMediaFile(entry.name)) {
+        await walkDirectory(fullPath, results);
+      }
+    } else if (entry.isFile() && isMediaFile(entry.name)) {
+      // Can't know the file size without stat, but we still index it.
+      // Size will be 0 — the reconciler doesn't filter by size.
       results.push({
         filePath: fullPath,
-        fileName: entry,
-        fileSize: fileStat.size,
-        modifiedAt: fileStat.mtime,
+        fileName: entry.name,
+        fileSize: 0, // Unknown without stat — acceptable for cloud indexing
+        modifiedAt: new Date(),
         sourceType: 'realdebrid',
       });
     }

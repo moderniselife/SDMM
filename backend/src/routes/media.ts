@@ -158,35 +158,46 @@ mediaRoutes.get('/media', (c) => {
       .query<Record<string, unknown>, (string | number)[]>(itemsSql)
       .all(...params, limit, offset);
 
-    // Map rows to MediaItem interface
-    const items: (MediaItem & { sources: MediaSource[] })[] = itemRows.map((row) => {
-      const itemId = row['id'] as string;
+    // Fetch all sources for the page of items in ONE query (fixes N+1)
+    const itemIds = itemRows.map((r) => r['id'] as string);
+    const sourcesMap = new Map<string, MediaSource[]>();
 
-      // Fetch sources for each item
-      const sourceRows = db
-        .query<Record<string, unknown>, [string]>(`
+    if (itemIds.length > 0) {
+      const placeholders = itemIds.map(() => '?').join(',');
+      const allSources = db
+        .query<Record<string, unknown>, string[]>(`
           SELECT id, media_item_id, source_type, file_path, file_name,
                  file_size, status, is_optimised, do_not_process,
                  created_at, updated_at
           FROM media_sources
-          WHERE media_item_id = ?
+          WHERE media_item_id IN (${placeholders})
         `)
-        .all(itemId);
+        .all(...itemIds);
 
-      const sources: MediaSource[] = sourceRows.map((sr) => ({
-        id: sr['id'] as string,
-        mediaItemId: sr['media_item_id'] as string,
-        sourceType: sr['source_type'] as MediaSource['sourceType'],
-        filePath: sr['file_path'] as string,
-        fileName: sr['file_name'] as string,
-        fileSize: sr['file_size'] as number,
-        status: sr['status'] as MediaSource['status'],
-        isOptimised: (sr['is_optimised'] as number) === 1,
-        doNotProcess: (sr['do_not_process'] as number) === 1,
-        createdAt: sr['created_at'] as string,
-        updatedAt: sr['updated_at'] as string,
-      }));
+      for (const sr of allSources) {
+        const mediaItemId = sr['media_item_id'] as string;
+        const source: MediaSource = {
+          id: sr['id'] as string,
+          mediaItemId,
+          sourceType: sr['source_type'] as MediaSource['sourceType'],
+          filePath: sr['file_path'] as string,
+          fileName: sr['file_name'] as string,
+          fileSize: sr['file_size'] as number,
+          status: sr['status'] as MediaSource['status'],
+          isOptimised: (sr['is_optimised'] as number) === 1,
+          doNotProcess: (sr['do_not_process'] as number) === 1,
+          createdAt: sr['created_at'] as string,
+          updatedAt: sr['updated_at'] as string,
+        };
+        const existing = sourcesMap.get(mediaItemId) ?? [];
+        existing.push(source);
+        sourcesMap.set(mediaItemId, existing);
+      }
+    }
 
+    // Map rows to MediaItem interface
+    const items: (MediaItem & { sources: MediaSource[] })[] = itemRows.map((row) => {
+      const itemId = row['id'] as string;
       return {
         id: itemId,
         title: row['title'] as string,
@@ -198,7 +209,7 @@ mediaRoutes.get('/media', (c) => {
         posterUrl: row['poster_url'] as string | null,
         createdAt: row['created_at'] as string,
         updatedAt: row['updated_at'] as string,
-        sources,
+        sources: sourcesMap.get(itemId) ?? [],
       };
     });
 
@@ -256,39 +267,51 @@ mediaRoutes.get('/media/unmatched', (c) => {
         LEFT JOIN plex_matches pm ON pm.media_item_id = mi.id
         WHERE pm.id IS NULL
         ORDER BY mi.created_at DESC
+        LIMIT 500
       `)
       .all();
 
-    const items = rows.map((row) => {
-      const sourceRow = db
-        .query<Record<string, unknown>, [string]>(`
+    // Batch-fetch sources (fixes N+1)
+    const itemIds = rows.map((r) => r['id'] as string);
+    const sourcesMap = new Map<string, MediaSource[]>();
+
+    if (itemIds.length > 0) {
+      const placeholders = itemIds.map(() => '?').join(',');
+      const allSources = db
+        .query<Record<string, unknown>, string[]>(`
           SELECT id, media_item_id, source_type, file_path, file_name,
                  file_size, status, is_optimised, do_not_process,
                  created_at, updated_at
           FROM media_sources
-          WHERE media_item_id = ?
-          LIMIT 1
+          WHERE media_item_id IN (${placeholders})
         `)
-        .get(row['id'] as string);
+        .all(...itemIds);
 
-      const sources: MediaSource[] = sourceRow
-        ? [{
-            id: sourceRow['id'] as string,
-            mediaItemId: sourceRow['media_item_id'] as string,
-            sourceType: sourceRow['source_type'] as MediaSource['sourceType'],
-            filePath: sourceRow['file_path'] as string,
-            fileName: sourceRow['file_name'] as string,
-            fileSize: sourceRow['file_size'] as number,
-            status: sourceRow['status'] as MediaSource['status'],
-            isOptimised: (sourceRow['is_optimised'] as number) === 1,
-            doNotProcess: (sourceRow['do_not_process'] as number) === 1,
-            createdAt: sourceRow['created_at'] as string,
-            updatedAt: sourceRow['updated_at'] as string,
-          }]
-        : [];
+      for (const sr of allSources) {
+        const mediaItemId = sr['media_item_id'] as string;
+        const source: MediaSource = {
+          id: sr['id'] as string,
+          mediaItemId,
+          sourceType: sr['source_type'] as MediaSource['sourceType'],
+          filePath: sr['file_path'] as string,
+          fileName: sr['file_name'] as string,
+          fileSize: sr['file_size'] as number,
+          status: sr['status'] as MediaSource['status'],
+          isOptimised: (sr['is_optimised'] as number) === 1,
+          doNotProcess: (sr['do_not_process'] as number) === 1,
+          createdAt: sr['created_at'] as string,
+          updatedAt: sr['updated_at'] as string,
+        };
+        const existing = sourcesMap.get(mediaItemId) ?? [];
+        existing.push(source);
+        sourcesMap.set(mediaItemId, existing);
+      }
+    }
 
+    const items = rows.map((row) => {
+      const itemId = row['id'] as string;
       return {
-        id: row['id'] as string,
+        id: itemId,
         title: row['title'] as string,
         type: row['type'] as MediaItem['type'],
         year: row['year'] as number | null,
@@ -298,7 +321,7 @@ mediaRoutes.get('/media/unmatched', (c) => {
         posterUrl: row['poster_url'] as string | null,
         createdAt: row['created_at'] as string,
         updatedAt: row['updated_at'] as string,
-        sources,
+        sources: sourcesMap.get(itemId) ?? [],
       };
     });
 

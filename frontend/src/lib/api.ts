@@ -22,7 +22,7 @@ import type {
 /** Pre-configured ky instance pointing at the backend proxy */
 const api = ky.create({
   prefix: '/api',
-  timeout: 30_000,
+  timeout: 120_000, // 2 minutes — FUSE mount operations can be slow
   headers: {
     'Content-Type': 'application/json',
   },

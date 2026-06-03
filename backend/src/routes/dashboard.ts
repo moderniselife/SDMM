@@ -9,7 +9,7 @@
  */
 
 import { Hono } from 'hono';
-import { statfsSync } from 'node:fs';
+import { statfs } from 'node:fs/promises';
 import { db } from '../db/connection';
 import { createLogger } from '../utils/logger';
 import { config } from '../config';
@@ -54,7 +54,7 @@ dashboardRoutes.get('/dashboard', async (c) => {
     let storageFree = 0;
     let storageTotal = 0;
     try {
-      const fsStats = statfsSync(config.paths.mediaRoot);
+      const fsStats = await statfs(config.paths.mediaRoot);
       const blockSize = fsStats.bsize;
       storageTotal = fsStats.blocks * blockSize;
       storageFree = fsStats.bfree * blockSize;

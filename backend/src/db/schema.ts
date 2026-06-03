@@ -48,6 +48,10 @@ CREATE INDEX IF NOT EXISTS idx_media_sources_type_status
 CREATE UNIQUE INDEX IF NOT EXISTS idx_media_sources_type_path
   ON media_sources(source_type, file_path);
 
+-- FK index: used by every media list/detail query to fetch sources for an item
+CREATE INDEX IF NOT EXISTS idx_media_sources_media_item_id
+  ON media_sources(media_item_id);
+
 -- =============================================================================
 -- File Probes — FFprobe analysis results
 -- =============================================================================
@@ -73,6 +77,11 @@ CREATE TABLE IF NOT EXISTS file_probes (
   raw_json          TEXT,
   probed_at         TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- FK index: used by media detail to fetch probes for each source
+CREATE INDEX IF NOT EXISTS idx_file_probes_media_source_id
+  ON file_probes(media_source_id);
+
 
 -- =============================================================================
 -- Encode Jobs — video transcoding tasks
@@ -174,6 +183,11 @@ CREATE TABLE IF NOT EXISTS plex_matches (
 
 CREATE INDEX IF NOT EXISTS idx_plex_matches_rating_key
   ON plex_matches(plex_rating_key);
+
+-- FK index: used by unmatched media LEFT JOIN and metadata enrichment
+CREATE INDEX IF NOT EXISTS idx_plex_matches_media_item_id
+  ON plex_matches(media_item_id);
+
 
 -- =============================================================================
 -- Watch Stats — viewing statistics from Tautulli

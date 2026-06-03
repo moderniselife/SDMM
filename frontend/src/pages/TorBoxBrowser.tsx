@@ -1,56 +1,20 @@
 /**
- * TorBoxBrowser — Two-panel layout: folder tree + file grid.
- * Same structure as RealDebrid but for TorBox source.
+ * TorBoxBrowser — Two-panel layout: folder list + file grid.
+ *
+ * Uses SSE streaming to progressively load directory contents from
+ * FUSE-mounted TorBox storage, avoiding timeouts.
  */
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Folder, FileVideo, Copy, Zap, Shield, AlertCircle, Loader2 } from 'lucide-react';
+import { ChevronRight, Folder, FolderOpen, FileVideo, Copy, Zap, Shield, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MediaBadge } from '@/components/media/MediaBadge';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { formatBytes } from '@/lib/utils';
-import { useApi } from '@/hooks/useApi';
-import { fetchCloudFiles, copyToLocal, encodeToLocal, preserve } from '@/lib/api';
+import { useCloudBrowser } from '@/hooks/useCloudBrowser';
+import { copyToLocal, encodeToLocal, preserve } from '@/lib/api';
 import type { CloudFile } from '@/lib/types';
-
-interface TreeNodeProps {
-  node: CloudFile;
-  depth: number;
-  selected: string | null;
-  onSelect: (path: string) => void;
-}
-
-function TreeNode({ node, depth, selected, onSelect }: TreeNodeProps) {
-  const [expanded, setExpanded] = useState(depth === 0);
-  const isSelected = selected === node.path;
-
-  return (
-    <div>
-      <button
-        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted cursor-pointer ${
-          isSelected ? 'bg-primary/10 text-primary' : 'text-foreground'
-        }`}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        onClick={() => {
-          if (node.children?.length) setExpanded(!expanded);
-          onSelect(node.path);
-        }}
-      >
-        {node.children?.length ? (
-          expanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        ) : (
-          <span className="w-3.5" />
-        )}
-        <Folder className="h-4 w-4 shrink-0 text-cyan-400" />
-        <span className="truncate">{node.name}</span>
-      </button>
-      {expanded && node.children?.map((child) => (
-        <TreeNode key={child.id} node={child} depth={depth + 1} selected={selected} onSelect={onSelect} />
-      ))}
-    </div>
-  );
-}
 
 function FileListSkeleton() {
   return (
@@ -78,13 +42,14 @@ export function TorBoxBrowser() {
     fileId?: string;
   }>({ open: false, title: '', desc: '', action: '' });
 
-  const { data: files, loading, error } = useApi(
-    () => fetchCloudFiles('torbox', currentPath),
-    [currentPath],
-  );
+  const { files, loading, error, totalFound } = useCloudBrowser('torbox', currentPath);
 
-  const folders = files?.filter((f) => f.isDirectory) ?? [];
-  const fileList = files?.filter((f) => !f.isDirectory) ?? [];
+  const folders = files.filter((f) => f.isDirectory);
+  const fileList = files.filter((f) => !f.isDirectory);
+
+  const handleFolderClick = (path: string) => {
+    setCurrentPath(path);
+  };
 
   const handleAction = (action: string, file: CloudFile) => {
     const labels: Record<string, string> = {
@@ -120,91 +85,151 @@ export function TorBoxBrowser() {
     }
   };
 
+  // Breadcrumb parts for current path
+  const pathParts = currentPath?.split('/').filter(Boolean) ?? [];
+
   return (
-    <div className="grid h-[calc(100vh-10rem)] grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-      {/* Folder Tree */}
-      <Card className="overflow-hidden">
-        <CardHeader className="py-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <MediaBadge type="TORBOX" label="TorBox" />
-            Folders
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[calc(100vh-16rem)]">
-            <div className="p-2">
-              {loading && folders.length === 0 ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                folders.map((folder) => (
-                  <TreeNode key={folder.id} node={folder} depth={0} selected={currentPath ?? null} onSelect={setCurrentPath} />
-                ))
+    <div className="space-y-4">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-1 text-sm">
+        <button
+          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          onClick={() => setCurrentPath(undefined)}
+        >
+          TorBox
+        </button>
+        {pathParts.map((part, i) => (
+          <span key={i} className="flex items-center gap-1">
+            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            <button
+              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              onClick={() => setCurrentPath(pathParts.slice(0, i + 1).join('/'))}
+            >
+              {part}
+            </button>
+          </span>
+        ))}
+        {loading && (
+          <span className="ml-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Loading… {totalFound > 0 && `(${totalFound} found)`}
+          </span>
+        )}
+      </div>
+
+      <div className="grid h-[calc(100vh-12rem)] grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+        {/* Folder Tree */}
+        <Card className="overflow-hidden">
+          <CardHeader className="py-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <MediaBadge type="TORBOX" label="TorBox" />
+              Folders
+              {folders.length > 0 && (
+                <span className="ml-auto text-xs font-normal text-muted-foreground">{folders.length}</span>
               )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      {/* File List */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm">Files</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[calc(100vh-16rem)]">
-            {error && (
-              <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400 mb-4">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {error}
-              </div>
-            )}
-            {loading ? (
-              <FileListSkeleton />
-            ) : fileList.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                No files found. Select a folder to browse.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {fileList.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center gap-4 rounded-lg border border-border bg-muted/20 p-3 transition-colors hover:bg-muted/40"
-                  >
-                    <FileVideo className="h-8 w-8 shrink-0 text-cyan-400" />
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatBytes(file.sizeBytes)}</p>
-                    </div>
-                    <div className="flex shrink-0 gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAction('copy', file)} aria-label="Copy to local">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAction('encode', file)} aria-label="Copy and encode">
-                        <Zap className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAction('preserve', file)} aria-label="Preserve locally">
-                        <Shield className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[calc(100vh-18rem)]">
+              <div className="p-2 space-y-0.5">
+                {loading && folders.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
-                ))}
+                ) : folders.length === 0 && !loading ? (
+                  <p className="py-4 text-center text-xs text-muted-foreground">No subfolders</p>
+                ) : (
+                  folders.map((folder) => (
+                    <button
+                      key={folder.id}
+                      className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted cursor-pointer ${
+                        currentPath === folder.path ? 'bg-primary/10 text-primary' : 'text-foreground'
+                      }`}
+                      onClick={() => handleFolderClick(folder.path)}
+                    >
+                      {currentPath === folder.path ? (
+                        <FolderOpen className="h-4 w-4 shrink-0 text-cyan-400" />
+                      ) : (
+                        <Folder className="h-4 w-4 shrink-0 text-cyan-400" />
+                      )}
+                      <span className="truncate">{folder.name}</span>
+                    </button>
+                  ))
+                )}
               </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
+            </ScrollArea>
+          </CardContent>
+        </Card>
 
-      <ConfirmModal
-        open={confirmAction.open}
-        onOpenChange={(open) => setConfirmAction((prev) => ({ ...prev, open }))}
-        title={confirmAction.title}
-        description={confirmAction.desc}
-        confirmLabel={confirmAction.title}
-        onConfirm={handleConfirm}
-      />
+        {/* File List */}
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              Files
+              {fileList.length > 0 && (
+                <span className="ml-1 text-xs font-normal text-muted-foreground">({fileList.length})</span>
+              )}
+              {loading && fileList.length > 0 && (
+                <Loader2 className="ml-1 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[calc(100vh-18rem)]">
+              {error && (
+                <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400 mb-4">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+              {loading && fileList.length === 0 && !error ? (
+                <FileListSkeleton />
+              ) : fileList.length === 0 && !loading ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  {currentPath ? 'No files in this folder.' : 'Select a folder to browse.'}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {fileList.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center gap-4 rounded-lg border border-border bg-muted/20 p-3 transition-colors hover:bg-muted/40"
+                    >
+                      <FileVideo className="h-8 w-8 shrink-0 text-cyan-400" />
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium">{file.name}</p>
+                        {file.sizeBytes > 0 && (
+                          <p className="text-xs text-muted-foreground">{formatBytes(file.sizeBytes)}</p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAction('copy', file)} aria-label="Copy to local">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAction('encode', file)} aria-label="Copy and encode">
+                          <Zap className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleAction('preserve', file)} aria-label="Preserve locally">
+                          <Shield className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        <ConfirmModal
+          open={confirmAction.open}
+          onOpenChange={(open) => setConfirmAction((prev) => ({ ...prev, open }))}
+          title={confirmAction.title}
+          description={confirmAction.desc}
+          confirmLabel={confirmAction.title}
+          onConfirm={handleConfirm}
+        />
+      </div>
     </div>
   );
 }
