@@ -53,16 +53,16 @@ function SourceRow({ source, onAction }: { source: MediaSource; onAction: (actio
         </div>
       </TableCell>
       <TableCell>
-        <MediaBadge type={source.resolution} />
+        {source.resolution ? <MediaBadge type={source.resolution} /> : <span className="text-xs text-muted-foreground">—</span>}
       </TableCell>
-      <TableCell className="text-sm">{source.codec}</TableCell>
-      <TableCell className="text-sm text-muted-foreground">{formatBytes(source.sizeBytes)}</TableCell>
+      <TableCell className="text-sm">{source.codec ?? '—'}</TableCell>
+      <TableCell className="text-sm text-muted-foreground">{formatBytes(source.fileSize)}</TableCell>
       <TableCell>
-        <MediaBadge type={source.status} />
+        <MediaBadge type={(source.status ?? 'available').toUpperCase()} />
       </TableCell>
       <TableCell>
         <div className="flex gap-1">
-          {source.sourceType !== 'LOCAL' && (
+          {(source.sourceType ?? '').toUpperCase() !== 'LOCAL' && (
             <>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction('copy', source)} aria-label="Copy to local">
                 <Copy className="h-3.5 w-3.5" />
@@ -181,9 +181,9 @@ export function MediaDetail() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <MediaBadge type={media.resolution} />
-            <span className="inline-flex items-center rounded-md bg-slate-600/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300">{media.codec}</span>
-            <MediaBadge type={media.status} />
+            {media.resolution && <MediaBadge type={media.resolution} />}
+            {media.codec && <span className="inline-flex items-center rounded-md bg-slate-600/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300">{media.codec}</span>}
+            {media.status && <MediaBadge type={media.status} />}
           </div>
 
           <Separator />
@@ -195,15 +195,15 @@ export function MediaDetail() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Primary Size</p>
-              <p className="text-lg font-semibold">{formatBytes(media.sizeBytes)}</p>
+              <p className="text-lg font-semibold">{formatBytes(media.sources[0]?.fileSize ?? media.sizeBytes ?? 0)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Added</p>
-              <p className="text-lg font-semibold">{timeAgo(media.addedAt)}</p>
+              <p className="text-lg font-semibold">{timeAgo(media.createdAt)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Type</p>
-              <p className="text-lg font-semibold capitalize">{media.mediaType}</p>
+              <p className="text-lg font-semibold capitalize">{media.type}</p>
             </div>
           </div>
 

@@ -49,22 +49,19 @@ dashboardRoutes.get('/dashboard', async (c) => {
       .get();
     const totalOptimised = optimisedRow?.count ?? 0;
 
-    // Storage — sum file sizes for local sources
-    const storageRow = db
-      .query<{ total: number | null }, []>(
-        "SELECT SUM(file_size) as total FROM media_sources WHERE source_type = 'local'"
-      )
-      .get();
-    const storageUsed = storageRow?.total ?? 0;
-
-    // Filesystem free space from the library directory
+    // Storage — filesystem stats from the library directory
+    let storageUsed = 0;
     let storageFree = 0;
+    let storageTotal = 0;
     try {
-      const fsStats = statfsSync(config.paths.library);
-      storageFree = fsStats.bfree * fsStats.bsize;
+      const fsStats = statfsSync(config.paths.mediaRoot);
+      const blockSize = fsStats.bsize;
+      storageTotal = fsStats.blocks * blockSize;
+      storageFree = fsStats.bfree * blockSize;
+      storageUsed = storageTotal - storageFree;
     } catch (fsErr) {
-      log.warn('Unable to read filesystem stats for library path', {
-        path: config.paths.library,
+      log.warn('Unable to read filesystem stats for media root', {
+        path: config.paths.mediaRoot,
         error: fsErr instanceof Error ? fsErr.message : String(fsErr),
       });
     }
@@ -113,6 +110,7 @@ dashboardRoutes.get('/dashboard', async (c) => {
       totalOptimised,
       storageUsed,
       storageFree,
+      storageTotal,
       activeEncodes,
       activeDownloads,
       recentActivity,
@@ -134,6 +132,97 @@ dashboardRoutes.get('/dashboard', async (c) => {
     const response: ApiResponse<never> = {
       success: false,
       error: 'Failed to load dashboard data',
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 500);
+  }
+});
+
+/**
+ * GET /api/activity
+ *
+ * Returns recent audit log entries. The dashboard route already fetches
+ * recentActivity but the frontend also calls this separately.
+ */
+dashboardRoutes.get('/activity', (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') ?? '20', 10);
+    const clampedLimit = Math.min(Math.max(1, limit), 50);
+
+    const rows = db
+      .query<Record<string, unknown>, [number]>(`
+        SELECT id, timestamp, action, entity_type, entity_id, details, source
+        FROM audit_logs
+        ORDER BY timestamp DESC
+        LIMIT ?
+      `)
+      .all(clampedLimit);
+
+    const entries = rows.map((row) => ({
+      id: row['id'] as string,
+      timestamp: row['timestamp'] as string,
+      action: row['action'] as string,
+      entityType: row['entity_type'] as string,
+      entityId: row['entity_id'] as string | null,
+      details: row['details'] as string | null,
+      source: row['source'] as string,
+    }));
+
+    const response: ApiResponse<typeof entries> = {
+      success: true,
+      data: entries,
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response);
+  } catch (err) {
+    log.error('Failed to fetch activity', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Failed to fetch activity',
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response, 500);
+  }
+});
+
+/**
+ * GET /api/suggestions/preservation
+ *
+ * Returns cloud media items that are frequently watched and should be
+ * considered for local preservation.
+ */
+dashboardRoutes.get('/suggestions/preservation', async (c) => {
+  try {
+    let suggestions: unknown[] = [];
+    try {
+      suggestions = await tautulliClient.getPreservationSuggestions();
+    } catch (tautErr) {
+      log.warn('Failed to fetch preservation suggestions from Tautulli', {
+        error: tautErr instanceof Error ? tautErr.message : String(tautErr),
+      });
+    }
+
+    const response: ApiResponse<typeof suggestions> = {
+      success: true,
+      data: suggestions,
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(response);
+  } catch (err) {
+    log.error('Failed to fetch preservation suggestions', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Failed to fetch preservation suggestions',
       timestamp: new Date().toISOString(),
     };
 

@@ -30,6 +30,7 @@ interface BackendDashboardStats {
   totalOptimised: number;
   storageUsed: number;
   storageFree: number;
+  storageTotal: number;
   activeEncodes: number;
   activeDownloads: number;
   recentActivity: unknown[];
@@ -51,9 +52,9 @@ function transformDashboardStats(raw: BackendDashboardStats): DashboardStats {
     totalLocalItems: raw.totalLocal,
     totalCloudItems: raw.totalRealDebrid + raw.totalTorBox,
     activeEncodes: raw.activeEncodes,
-    spaceSavedBytes: 0, // Not yet available from the backend
+    spaceSavedBytes: 0, // Calculated once encodes complete
     storageUsed: raw.storageUsed,
-    storageTotal: raw.storageUsed + raw.storageFree,
+    storageTotal: raw.storageTotal || (raw.storageUsed + raw.storageFree),
     storageSections: [
       { name: 'Used', usedBytes: raw.storageUsed, colour: '#6366f1' },
     ],

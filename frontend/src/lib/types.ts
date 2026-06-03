@@ -11,35 +11,49 @@ export type Codec = 'HEVC' | 'H.264' | 'AV1' | 'VP9' | 'MPEG4' | 'OTHER';
 export type EncoderType = 'ffmpeg' | 'handbrake' | 'av1an';
 
 // ── Media Item ─────────────────────────────────────────────
+// Matches the backend MediaItem shape from GET /api/media
 export interface MediaItem {
   id: string;
   title: string;
-  year?: number;
-  posterUrl?: string;
-  backdropUrl?: string;
-  mediaType: 'movie' | 'show' | 'episode';
-  resolution: Resolution;
-  codec: Codec;
-  sources: MediaSource[];
-  status: MediaStatus;
-  sizeBytes: number;
-  addedAt: string;
+  type: 'movie' | 'series' | 'episode' | 'other';
+  year: number | null;
+  imdbId: string | null;
+  tmdbId: string | null;
+  tvdbId: string | null;
+  posterUrl: string | null;
+  createdAt: string;
   updatedAt: string;
+  sources: MediaSource[];
+  // Derived fields (optional, populated by frontend transforms or probes)
+  backdropUrl?: string;
+  mediaType?: 'movie' | 'show' | 'episode';
+  resolution?: Resolution;
+  codec?: Codec;
+  status?: MediaStatus;
+  sizeBytes?: number;
+  addedAt?: string;
 }
 
 // ── Media Source ────────────────────────────────────────────
+// Matches the backend MediaSource shape
 export interface MediaSource {
   id: string;
-  mediaId: string;
-  sourceType: SourceType;
+  mediaItemId: string;
+  sourceType: SourceType | string;
   filePath: string;
   fileName: string;
-  sizeBytes: number;
-  resolution: Resolution;
-  codec: Codec;
-  status: MediaStatus;
-  lastAccessed?: string;
+  fileSize: number;
+  status: string;
+  isOptimised: boolean;
+  doNotProcess: boolean;
   createdAt: string;
+  updatedAt: string;
+  // Legacy fields for backward compat
+  mediaId?: string;
+  sizeBytes?: number;
+  resolution?: Resolution;
+  codec?: Codec;
+  lastAccessed?: string;
 }
 
 // ── Encode Job ─────────────────────────────────────────────

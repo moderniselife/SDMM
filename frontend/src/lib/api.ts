@@ -49,17 +49,34 @@ export async function fetchPreservationSuggestions(): Promise<PreservationSugges
 
 export async function fetchMedia(filters: Partial<MediaFilters>): Promise<PaginatedResponse<MediaItem>> {
   const searchParams: Record<string, string> = {};
-  if (filters.source && filters.source !== 'ALL') searchParams.source = filters.source;
-  if (filters.resolution && filters.resolution !== 'ALL') searchParams.resolution = filters.resolution;
+  // Backend uses 'sourceType' not 'source', and lowercase values
+  if (filters.source && filters.source !== 'ALL') searchParams.sourceType = filters.source.toLowerCase();
+  if (filters.resolution && filters.resolution !== 'ALL') searchParams.resolution = filters.resolution.toLowerCase();
   if (filters.codec && filters.codec !== 'ALL') searchParams.codec = filters.codec;
-  if (filters.status && filters.status !== 'ALL') searchParams.status = filters.status;
+  if (filters.status && filters.status !== 'ALL') searchParams.status = filters.status.toLowerCase();
   if (filters.sort) searchParams.sort = filters.sort;
   if (filters.sortDir) searchParams.sortDir = filters.sortDir;
   if (filters.page) searchParams.page = String(filters.page);
-  if (filters.pageSize) searchParams.pageSize = String(filters.pageSize);
+  // Backend uses 'limit' not 'pageSize'
+  if (filters.pageSize) searchParams.limit = String(filters.pageSize);
 
-  const res = await api.get('media', { searchParams }).json<ApiResponse<PaginatedResponse<MediaItem>>>();
-  return res.data;
+  interface BackendPaginated {
+    items: MediaItem[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }
+
+  const res = await api.get('media', { searchParams }).json<ApiResponse<BackendPaginated>>();
+  // Map backend's 'limit' to frontend's 'pageSize'
+  return {
+    items: res.data.items,
+    total: res.data.total,
+    page: res.data.page,
+    pageSize: res.data.limit,
+    totalPages: res.data.totalPages,
+  };
 }
 
 export async function fetchMediaById(id: string): Promise<MediaItemDetail> {

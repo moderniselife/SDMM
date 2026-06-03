@@ -4,7 +4,7 @@
 import { cn } from '@/lib/utils';
 import type { MediaStatus, Resolution, SourceType } from '@/lib/types';
 
-type BadgeType = SourceType | MediaStatus | Resolution;
+type BadgeType = SourceType | MediaStatus | Resolution | string;
 
 const badgeConfig: Record<string, { bg: string; text: string; pulse?: boolean }> = {
   // Source badges
@@ -36,8 +36,10 @@ interface MediaBadgeProps {
 }
 
 export function MediaBadge({ type, label, className }: MediaBadgeProps) {
-  const config = badgeConfig[type] ?? { bg: 'bg-slate-600/30', text: 'text-slate-400' };
-  const displayLabel = label ?? type;
+  // Normalise to uppercase for lookup (backend returns lowercase source types)
+  const normalised = typeof type === 'string' ? type.toUpperCase() : String(type);
+  const config = badgeConfig[normalised] ?? badgeConfig[type] ?? { bg: 'bg-slate-600/30', text: 'text-slate-400' };
+  const displayLabel = label ?? normalised;
 
   return (
     <span

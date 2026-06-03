@@ -16,10 +16,12 @@ import {
   ChevronRight,
   Disc3,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatBytes } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { useApi } from '@/hooks/useApi';
+import { fetchDashboard } from '@/lib/api';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -40,10 +42,14 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
 
-  // TODO: Replace with real API data from dashboard stats
-  const storageUsed = 3.2; // TB
-  const storageTotal = 8.0; // TB
-  const storagePercent = (storageUsed / storageTotal) * 100;
+  // Fetch real storage stats from the dashboard API
+  const { data: dashData } = useApi(fetchDashboard);
+  const rawStats = dashData as Record<string, unknown> | null;
+  const storageUsedBytes = (rawStats?.storageUsed as number) ?? 0;
+  const storageTotalBytes = (rawStats?.storageTotal as number) ?? ((rawStats?.storageUsed as number ?? 0) + (rawStats?.storageFree as number ?? 0));
+  const storagePercent = storageTotalBytes > 0 ? (storageUsedBytes / storageTotalBytes) * 100 : 0;
+  const storageUsedLabel = formatBytes(storageUsedBytes);
+  const storageTotalLabel = formatBytes(storageTotalBytes);
 
   return (
     <aside
@@ -108,7 +114,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Storage</span>
               <span>
-                {storageUsed} TB / {storageTotal} TB
+                {storageUsedLabel} / {storageTotalLabel}
               </span>
             </div>
             <Progress value={storagePercent} className="h-1.5" />
@@ -126,7 +132,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               </div>
             </TooltipTrigger>
             <TooltipContent side="right">
-              {storageUsed} TB / {storageTotal} TB
+              {storageUsedLabel} / {storageTotalLabel}
             </TooltipContent>
           </Tooltip>
         )}

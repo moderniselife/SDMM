@@ -100,7 +100,7 @@ const RESOLUTION_MAP: Record<string, string> = {
  *
  * @param fileName - The media file name (with or without extension)
  */
-export function parseMediaFilename(fileName: string): ParsedMedia {
+export function parseMediaFilename(fileName: string, filePath?: string): ParsedMedia {
   // Strip file extension
   const baseName = fileName.replace(/\.[^.]+$/, '');
 
@@ -109,10 +109,26 @@ export function parseMediaFilename(fileName: string): ParsedMedia {
   const tvMatch = baseName.match(tvPattern);
 
   if (tvMatch) {
-    const rawTitle = tvMatch[1]!;
+    let rawTitle = tvMatch[1]!;
     const season = parseInt(tvMatch[2]!, 10);
     const episode = parseInt(tvMatch[3]!, 10);
     const resolution = extractResolution(baseName);
+
+    // If the "title" from filename looks like garbage (e.g. just "S02E10"),
+    // try to extract the show name from the parent directory path
+    const cleanedTitle = cleanTitle(rawTitle);
+    if (filePath && (!cleanedTitle || cleanedTitle.length < 3 || /^s\d/i.test(cleanedTitle))) {
+      const pathParts = filePath.split('/');
+      // Walk backwards through path segments to find a meaningful show name
+      // Skip the filename itself and look for something that isn't a season folder
+      for (let i = pathParts.length - 2; i >= 0; i--) {
+        const segment = pathParts[i]!;
+        if (segment && !/^season\s*\d+$/i.test(segment) && !/^s\d{1,2}$/i.test(segment) && segment.length > 2) {
+          rawTitle = segment;
+          break;
+        }
+      }
+    }
 
     return {
       title: cleanTitle(rawTitle),
@@ -423,7 +439,7 @@ export async function reconcileFiles(
   for (const file of files) {
     try {
       // Step 1: Parse the filename
-      const parsed = parseMediaFilename(file.fileName);
+      const parsed = parseMediaFilename(file.fileName, file.filePath);
 
       if (!parsed.title) {
         result.errors.push(`Could not parse title from: ${file.fileName}`);

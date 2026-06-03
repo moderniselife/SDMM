@@ -139,7 +139,7 @@ export function SearchBar({ className }: SearchBarProps) {
                       <p className="text-xs text-muted-foreground">{item.year}</p>
                     )}
                   </div>
-                  <MediaBadge type={item.resolution} />
+                  {item.resolution && <MediaBadge type={item.resolution} />}
                 </button>
               ))}
             </div>

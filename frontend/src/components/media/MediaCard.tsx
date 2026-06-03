@@ -15,7 +15,7 @@ interface MediaCardProps {
 
 export function MediaCard({ item, className }: MediaCardProps) {
   const navigate = useNavigate();
-  const primarySource = item.sources[0]?.sourceType ?? 'LOCAL';
+  const primarySource = (item.sources[0]?.sourceType ?? 'local').toUpperCase();
 
   return (
     <div
@@ -57,7 +57,7 @@ export function MediaCard({ item, className }: MediaCardProps) {
         {/* Badges — top right */}
         <div className="absolute right-2 top-2 flex flex-col gap-1">
           <MediaBadge type={primarySource} />
-          {item.status !== 'AVAILABLE' && <MediaBadge type={item.status} />}
+          {item.status && item.status !== 'AVAILABLE' && <MediaBadge type={item.status} />}
         </div>
 
         {/* Hover overlay with action buttons */}
@@ -117,7 +117,7 @@ export function MediaCard({ item, className }: MediaCardProps) {
           <h3 className="truncate text-sm font-semibold text-white">{item.title}</h3>
           <div className="mt-1 flex items-center gap-2">
             {item.year && <span className="text-xs text-slate-400">{item.year}</span>}
-            <MediaBadge type={item.resolution} />
+            {item.resolution && <MediaBadge type={item.resolution} />}
           </div>
         </div>
       </div>

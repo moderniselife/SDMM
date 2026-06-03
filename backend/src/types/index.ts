@@ -217,6 +217,7 @@ export interface DashboardStats {
   totalOptimised: number;
   storageUsed: number;
   storageFree: number;
+  storageTotal: number;
   activeEncodes: number;
   activeDownloads: number;
   recentActivity: AuditLog[];
