@@ -8,7 +8,7 @@
  */
 
 import { Hono } from 'hono';
-import { readdir, stat } from 'fs/promises';
+import { readdir, stat, lstat } from 'fs/promises';
 import { join } from 'path';
 import { config } from '../config';
 import { createLogger } from '../utils/logger';
@@ -55,20 +55,48 @@ async function browseDirectory(
         ? join(subPath, entry.name)
         : entry.name;
 
-      try {
-        const stats = await stat(fullPath);
+      // Try stat (follows symlinks) first, then lstat (doesn't follow),
+      // then fall back to Dirent info. FUSE mounts (pd_zurg, TorBox)
+      // often use symlinks or virtual files where stat can timeout/fail.
+      let fileSize: number | null = null;
+      let modifiedAt: string | null = null;
+      let isDir = false;
+      let isFile = false;
 
-        entries.push({
-          name: entry.name,
-          path: relativePath,
-          isDirectory: entry.isDirectory(),
-          size: entry.isFile() ? stats.size : null,
-          modifiedAt: stats.mtime.toISOString(),
-        });
+      try {
+        // stat follows symlinks — ideal for FUSE mounts
+        const stats = await stat(fullPath);
+        isDir = stats.isDirectory();
+        isFile = stats.isFile();
+        fileSize = isFile ? stats.size : null;
+        modifiedAt = stats.mtime.toISOString();
       } catch {
-        // Skip files we can't stat (permission issues, broken symlinks)
-        log.debug(`Skipping unreadable entry: ${fullPath}`);
+        // stat failed — try lstat (works on the symlink itself)
+        try {
+          const lstats = await lstat(fullPath);
+          isDir = lstats.isDirectory() || lstats.isSymbolicLink();
+          isFile = lstats.isFile();
+          fileSize = isFile ? lstats.size : null;
+          modifiedAt = lstats.mtime.toISOString();
+        } catch {
+          // Both stat and lstat failed — use Dirent info as last resort
+          // On FUSE mounts, Dirent.isDirectory() may return false for
+          // symlinked directories, so treat unknown entries as directories
+          // if they have no file extension
+          const hasExtension = entry.name.includes('.');
+          isDir = entry.isDirectory() || entry.isSymbolicLink() || !hasExtension;
+          isFile = entry.isFile() || (hasExtension && !isDir);
+          log.debug(`stat/lstat failed for ${fullPath}, using Dirent fallback (isDir=${isDir})`);
+        }
       }
+
+      entries.push({
+        name: entry.name,
+        path: relativePath,
+        isDirectory: isDir,
+        size: fileSize,
+        modifiedAt,
+      });
     }
 
     // Sort: directories first, then alphabetically
