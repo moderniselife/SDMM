@@ -97,8 +97,33 @@ export async function fetchCloudFiles(
 ): Promise<CloudFile[]> {
   const searchParams: Record<string, string> = {};
   if (path) searchParams.path = path;
-  const res = await api.get(`sources/${sourceType}/files`, { searchParams }).json<ApiResponse<CloudFile[]>>();
-  return res.data;
+
+  // Backend returns FileEntry[] shape, transform to CloudFile[]
+  interface BackendFileEntry {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    size: number | null;
+    modifiedAt: string | null;
+    children?: BackendFileEntry[];
+  }
+
+  const res = await api.get(`sources/${sourceType}`, { searchParams }).json<ApiResponse<BackendFileEntry[]>>();
+
+  function transformEntry(entry: BackendFileEntry): CloudFile {
+    return {
+      id: entry.path, // Use path as a deterministic ID
+      name: entry.name,
+      path: entry.path,
+      isDirectory: entry.isDirectory,
+      sizeBytes: entry.size ?? 0,
+      sourceType: sourceType === 'realdebrid' ? 'REALDEBRID' : 'TORBOX',
+      createdAt: entry.modifiedAt ?? new Date().toISOString(),
+      children: entry.children?.map(transformEntry),
+    };
+  }
+
+  return res.data.map(transformEntry);
 }
 
 export async function copyToLocal(sourceId: string): Promise<void> {
