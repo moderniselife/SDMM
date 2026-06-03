@@ -21,6 +21,7 @@ const mockMedia: MediaItem = {
   title: 'Interstellar',
   year: 2014,
   mediaType: 'movie',
+  posterUrl: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
   resolution: '4K',
   codec: 'HEVC',
   sources: [
@@ -133,8 +134,8 @@ export function MediaDetail() {
           {media.posterUrl ? (
             <img src={media.posterUrl} alt={media.title} className="w-full rounded-xl shadow-lg" />
           ) : (
-            <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg">
-              <span className="text-6xl font-bold text-slate-600">{media.title.charAt(0)}</span>
+            <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gradient-to-br from-muted to-muted/60 shadow-lg">
+              <span className="text-6xl font-bold text-muted-foreground">{media.title.charAt(0)}</span>
             </div>
           )}
         </div>

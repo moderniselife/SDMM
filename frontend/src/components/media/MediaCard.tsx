@@ -44,8 +44,8 @@ export function MediaCard({ item, className }: MediaCardProps) {
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-            <span className="text-4xl font-bold text-slate-600">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/60">
+            <span className="text-4xl font-bold text-muted-foreground">
               {item.title.charAt(0).toUpperCase()}
             </span>
           </div>

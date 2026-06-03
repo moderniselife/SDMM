@@ -114,7 +114,7 @@ const mockSuggestions: PreservationSuggestion[] = [
   {
     mediaId: 'p1',
     title: 'Oppenheimer',
-    posterUrl: undefined,
+    posterUrl: 'https://image.tmdb.org/t/p/w200/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
     playCount: 12,
     sourceType: 'REALDEBRID',
     reason: 'Played 12 times from cloud — consider preserving locally',
@@ -122,7 +122,7 @@ const mockSuggestions: PreservationSuggestion[] = [
   {
     mediaId: 'p2',
     title: 'Barbie',
-    posterUrl: undefined,
+    posterUrl: 'https://image.tmdb.org/t/p/w200/iuFNMS8U5cb6xfzi51Dbkovj7vM.jpg',
     playCount: 8,
     sourceType: 'TORBOX',
     reason: 'Played 8 times from cloud — consider preserving locally',
@@ -130,7 +130,7 @@ const mockSuggestions: PreservationSuggestion[] = [
   {
     mediaId: 'p3',
     title: 'Everything Everywhere All at Once',
-    posterUrl: undefined,
+    posterUrl: 'https://image.tmdb.org/t/p/w200/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg',
     playCount: 6,
     sourceType: 'REALDEBRID',
     reason: 'Played 6 times from cloud — consider preserving locally',
@@ -164,9 +164,18 @@ export function Dashboard() {
                 key={s.mediaId}
                 className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/50 cursor-pointer"
               >
-                <div className="flex h-12 w-9 shrink-0 items-center justify-center rounded bg-gradient-to-br from-slate-700 to-slate-800 text-sm font-bold text-slate-500">
-                  {s.title.charAt(0)}
-                </div>
+                {s.posterUrl ? (
+                  <img
+                    src={s.posterUrl}
+                    alt={s.title}
+                    className="h-12 w-9 shrink-0 rounded object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-12 w-9 shrink-0 items-center justify-center rounded bg-gradient-to-br from-muted to-muted/60 text-sm font-bold text-muted-foreground">
+                    {s.title.charAt(0)}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-sm font-medium">{s.title}</p>
                   <div className="mt-1 flex items-center gap-2">
