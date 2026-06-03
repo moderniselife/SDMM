@@ -9,12 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Deploy script (`deploy.sh`) for automated SSH + Docker deployment to remote server
-  - rsync/scp file upload with node_modules, .git, dist exclusions
-  - Docker Compose build (--no-cache) and stack deployment
-  - Discord webhook notifications (deploying, success, failure embeds)
-  - Deploy history tracking with rolling average timing (last 20 deploys)
-  - Pre-flight checks for ssh, scp, rsync
+- Light mode and system theme preference support
+- ThemeProvider with localStorage persistence and system preference tracking
+- Theme toggle dropdown in header with animated sun/moon icon transition
+- Anti-FOUC inline script applies theme before React hydrates
+- CSS custom properties for both light and dark modes
+- Light-mode adapted glassmorphism, skeleton loaders, gradient text, and badge colours
 
 ## [0.1.0] - 2026-06-03
 
