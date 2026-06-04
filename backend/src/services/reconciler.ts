@@ -330,7 +330,7 @@ function findOrCreateMediaItemCached(parsed: ParsedMedia, cache: MediaItemCache,
 
   // No match — create new media_item (using pre-compiled statement)
   const id = crypto.randomUUID();
-  stmtInsertMediaItem.run(id, parsed.title, type, parsed.year, now, now);
+  getStmtInsertMediaItem().run(id, parsed.title, type, parsed.year, now, now);
 
   // Update cache
   cache.set(cacheKey(normTitle, type, parsed.year), id);
@@ -342,36 +342,50 @@ function findOrCreateMediaItemCached(parsed: ParsedMedia, cache: MediaItemCache,
 // ---------------------------------------------------------------------------
 // Pre-compiled Prepared Statements
 // ---------------------------------------------------------------------------
-// These are created ONCE and reused for every call.
-// Before this fix, db.prepare() was called inside upsertMediaSource
-// for EVERY file (39,877 times), creating ~120K native Statement
-// objects that leaked memory.
+// These are compiled lazily on first use (not at import time) because
+// the schema migration may not have run yet when this module loads.
+// Once compiled, they're cached for the lifetime of the process.
 // ---------------------------------------------------------------------------
 
-const stmtFindSource = db.prepare(`
-  SELECT id, file_size FROM media_sources
-  WHERE source_type = ? AND file_path = ?
-`);
+import type { Statement } from 'bun:sqlite';
 
-const stmtUpdateSourceSize = db.prepare(`
-  UPDATE media_sources
-  SET file_size = ?, updated_at = ?
-  WHERE id = ?
-`);
+let _stmtFindSource: Statement | null = null;
+let _stmtUpdateSourceSize: Statement | null = null;
+let _stmtInsertSource: Statement | null = null;
+let _stmtInsertMediaItem: Statement | null = null;
 
-const stmtInsertSource = db.prepare(`
-  INSERT INTO media_sources (
-    id, media_item_id, source_type, file_path, file_name,
-    file_size, status, is_optimised, do_not_process,
-    created_at, updated_at
-  )
-  VALUES (?, ?, ?, ?, ?, ?, 'available', 0, ?, ?, ?)
-`);
+function getStmtFindSource(): Statement {
+  return (_stmtFindSource ??= db.prepare(`
+    SELECT id, file_size FROM media_sources
+    WHERE source_type = ? AND file_path = ?
+  `));
+}
 
-const stmtInsertMediaItem = db.prepare(`
-  INSERT INTO media_items (id, title, type, year, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?)
-`);
+function getStmtUpdateSourceSize(): Statement {
+  return (_stmtUpdateSourceSize ??= db.prepare(`
+    UPDATE media_sources
+    SET file_size = ?, updated_at = ?
+    WHERE id = ?
+  `));
+}
+
+function getStmtInsertSource(): Statement {
+  return (_stmtInsertSource ??= db.prepare(`
+    INSERT INTO media_sources (
+      id, media_item_id, source_type, file_path, file_name,
+      file_size, status, is_optimised, do_not_process,
+      created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, 'available', 0, ?, ?, ?)
+  `));
+}
+
+function getStmtInsertMediaItem(): Statement {
+  return (_stmtInsertMediaItem ??= db.prepare(`
+    INSERT INTO media_items (id, title, type, year, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `));
+}
 
 // ---------------------------------------------------------------------------
 // Database Operations — Media Source Upsert
@@ -396,11 +410,11 @@ function upsertMediaSource(
     file_size: number;
   }
 
-  const existing = stmtFindSource.get(file.sourceType, file.filePath) as ExistingSource | null;
+  const existing = getStmtFindSource().get(file.sourceType, file.filePath) as ExistingSource | null;
 
   if (existing) {
     if (existing.file_size !== file.fileSize) {
-      stmtUpdateSourceSize.run(file.fileSize, now, existing.id);
+      getStmtUpdateSourceSize().run(file.fileSize, now, existing.id);
     }
     return { isNew: false, sourceId: existing.id };
   }
@@ -409,7 +423,7 @@ function upsertMediaSource(
   const id = crypto.randomUUID();
   const isCloud = file.sourceType === 'realdebrid' || file.sourceType === 'torbox';
 
-  stmtInsertSource.run(
+  getStmtInsertSource().run(
     id,
     mediaItemId,
     file.sourceType,
