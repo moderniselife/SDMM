@@ -152,31 +152,44 @@ export async function syncWatchStatsForItem(mediaItemId: string): Promise<void> 
  * @param mediaItemId - The parent media_item ID
  * @param ratingKey - The Plex rating key
  */
-// Pre-prepared statements for watch stats operations (hoisted to avoid
-// creating native Statement objects inside the per-item loop).
-const stmtSelectWatchStats = db.prepare(`
-  SELECT id, total_plays, total_watch_time_seconds
-  FROM watch_stats
-  WHERE media_item_id = ? AND plex_rating_key = ?
-`);
+// Lazy-initialised prepared statements for watch stats operations.
+// Cannot prepare at module load time because the table may not exist yet
+// (migrations run after module imports).
+import type { Statement } from 'bun:sqlite';
 
-const stmtUpdateWatchStats = db.prepare(`
-  UPDATE watch_stats
-  SET total_plays = ?,
-      total_watch_time_seconds = ?,
-      fetched_at = ?
-  WHERE id = ?
-`);
+let _stmtSelect: Statement | null = null;
+let _stmtUpdate: Statement | null = null;
+let _stmtInsert: Statement | null = null;
 
-const stmtInsertWatchStats = db.prepare(`
-  INSERT INTO watch_stats (
-    id, media_item_id, plex_rating_key,
-    total_plays, last_played_at,
-    total_watch_time_seconds, unique_viewers,
-    fetched_at
-  )
-  VALUES (?, ?, ?, ?, NULL, ?, 0, ?)
-`);
+function getStmtSelect(): Statement {
+  return (_stmtSelect ??= db.prepare(`
+    SELECT id, total_plays, total_watch_time_seconds
+    FROM watch_stats
+    WHERE media_item_id = ? AND plex_rating_key = ?
+  `));
+}
+
+function getStmtUpdate(): Statement {
+  return (_stmtUpdate ??= db.prepare(`
+    UPDATE watch_stats
+    SET total_plays = ?,
+        total_watch_time_seconds = ?,
+        fetched_at = ?
+    WHERE id = ?
+  `));
+}
+
+function getStmtInsert(): Statement {
+  return (_stmtInsert ??= db.prepare(`
+    INSERT INTO watch_stats (
+      id, media_item_id, plex_rating_key,
+      total_plays, last_played_at,
+      total_watch_time_seconds, unique_viewers,
+      fetched_at
+    )
+    VALUES (?, ?, ?, ?, NULL, ?, 0, ?)
+  `));
+}
 
 async function syncWatchStatsForRatingKey(
   mediaItemId: string,
@@ -200,7 +213,7 @@ async function syncWatchStatsForRatingKey(
   const totalWatchTimeSeconds = allTimeStat.totalTime;
 
   // Check for existing watch_stats record
-  const existing = stmtSelectWatchStats.get(mediaItemId, ratingKey) as ExistingWatchStats | null;
+  const existing = getStmtSelect().get(mediaItemId, ratingKey) as ExistingWatchStats | null;
 
   const now = new Date().toISOString();
 
@@ -210,7 +223,7 @@ async function syncWatchStatsForRatingKey(
       existing.total_plays !== totalPlays ||
       existing.total_watch_time_seconds !== totalWatchTimeSeconds
     ) {
-      stmtUpdateWatchStats.run(totalPlays, totalWatchTimeSeconds, now, existing.id);
+      getStmtUpdate().run(totalPlays, totalWatchTimeSeconds, now, existing.id);
 
       log.debug('Updated watch stats', {
         mediaItemId,
@@ -223,7 +236,7 @@ async function syncWatchStatsForRatingKey(
     // Insert new watch_stats record
     const id = crypto.randomUUID();
 
-    stmtInsertWatchStats.run(id, mediaItemId, ratingKey, totalPlays, totalWatchTimeSeconds, now);
+    getStmtInsert().run(id, mediaItemId, ratingKey, totalPlays, totalWatchTimeSeconds, now);
 
     log.debug('Inserted new watch stats', {
       mediaItemId,
