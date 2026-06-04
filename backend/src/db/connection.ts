@@ -61,7 +61,19 @@ function createConnection(): Database {
   database.exec('PRAGMA foreign_keys = ON');
   database.exec('PRAGMA temp_store = MEMORY');
 
-  log.info('Database connection established with WAL mode');
+  // CRITICAL: Disable memory-mapped I/O.
+  // Without this, SQLite memory-maps the entire DB file + WAL file into
+  // the process address space. With 40K+ items and a large WAL from bulk
+  // inserts, this causes the process to show 10-20GB+ resident memory.
+  // Setting to 0 forces normal read() I/O which uses the page cache instead.
+  database.exec('PRAGMA mmap_size = 0');
+
+  // Auto-checkpoint the WAL every 1000 pages (~4MB) instead of the
+  // default 1000. This prevents the WAL from growing unbounded during
+  // bulk reconciliation of 40K files.
+  database.exec('PRAGMA wal_autocheckpoint = 1000');
+
+  log.info('Database connection established with WAL mode (mmap disabled)');
 
   return database;
 }
@@ -79,6 +91,22 @@ export function closeDatabase(): void {
     log.info('Database connection closed');
   } catch (err) {
     log.error('Error closing database', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Runs a WAL checkpoint to merge the WAL file back into the main DB.
+ * Call this after large bulk operations (e.g. reconciliation of 40K files)
+ * to free the WAL memory and prevent unbounded growth.
+ */
+export function checkpointWal(): void {
+  try {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    log.info('WAL checkpoint complete');
+  } catch (err) {
+    log.warn('WAL checkpoint failed (non-fatal)', {
       error: err instanceof Error ? err.message : String(err),
     });
   }

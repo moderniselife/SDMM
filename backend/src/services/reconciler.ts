@@ -15,6 +15,7 @@
  */
 
 import { db } from '@/db/connection';
+import { checkpointWal } from '@/db/connection';
 import { createLogger } from '@/utils/logger';
 import { eventBus } from '@/services/events';
 import type { SourceType, MediaType } from '@/types';
@@ -543,6 +544,9 @@ export async function reconcileFiles(
     updatedItems: result.updatedItems,
     errors: result.errors.length,
   });
+
+  // Checkpoint WAL after bulk operations to reclaim memory
+  checkpointWal();
 
   return result;
 }
