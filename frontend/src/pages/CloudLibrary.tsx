@@ -30,33 +30,13 @@ export function CloudLibrary() {
     useMediaStore();
   const setPage = useMediaStore((s) => s.setPage);
 
-  // Fetch cloud items — we query twice (RD + TorBox) via the 'ALL' source
-  // but use a custom approach: fetch without source filter, then the backend
-  // shows everything. Instead, we use a special approach.
-  // Actually, the backend doesn't have a 'cloud' filter, so we'll fetch
-  // items that have RD or TorBox sources but NOT local.
-  // For now, use source filter — we can show RD and TB separately or together.
-  // Let's just not filter by source and let the badge show what's what.
-  // Actually the simplest approach: fetch all, but we need a 'cloud' filter.
-  // Let me use the existing API — items with realdebrid OR torbox sources.
-  // The backend only supports one sourceType at a time, so we'll fetch both
-  // and merge, OR we add a 'cloud' virtual filter.
-  
-  // Simpler: fetch all items and let the user see everything that's on cloud.
-  // We'll do two sequential calls or use 'ALL' and filter client-side.
-  // Best: just show all non-local by fetching without source filter and noting
-  // that local-only items won't appear since they have no cloud sources.
-  
-  // Simplest correct solution: fetch realdebrid items (they're the bulk)
-  // and show both RD and TB. We need to update the backend to support
-  // a 'cloud' composite filter, OR fetch without filtering.
-
-  // For now: don't filter by source — show everything. The badge correctly
-  // identifies source type. The "Cloud Library" title makes it clear.
-  // Items that are ONLY local won't have cloud badges.
+  // Use 'CLOUD' as a virtual source filter — backend maps this to
+  // IN ('realdebrid', 'torbox') so we get proper server-side filtering
+  // and correct pagination counts.
   const { data, loading, error } = useApi(
     () =>
       fetchMedia({
+        source: 'CLOUD' as any, // Virtual composite filter
         resolution,
         codec,
         status,
@@ -68,13 +48,7 @@ export function CloudLibrary() {
     [resolution, codec, status, sort, sortDir, currentPage, pageSize],
   );
 
-  // Client-side filter: only show items that have at least one cloud source
-  const allItems = data?.items ?? [];
-  const items = allItems.filter((item) =>
-    item.sources?.some((s) =>
-      s.sourceType.toLowerCase() === 'realdebrid' || s.sourceType.toLowerCase() === 'torbox',
-    ),
-  );
+  const items = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
 
   return (

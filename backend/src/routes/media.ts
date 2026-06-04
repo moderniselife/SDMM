@@ -81,8 +81,13 @@ mediaRoutes.get('/media', (c) => {
     }
 
     if (sourceType) {
-      conditions.push('ms.source_type = ?');
-      params.push(sourceType);
+      if (sourceType === 'cloud') {
+        // Virtual filter: matches both RealDebrid and TorBox sources
+        conditions.push("ms.source_type IN ('realdebrid', 'torbox')");
+      } else {
+        conditions.push('ms.source_type = ?');
+        params.push(sourceType);
+      }
     }
 
     if (status) {
