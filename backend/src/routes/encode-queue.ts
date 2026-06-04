@@ -174,53 +174,84 @@ encodeQueueRoutes.post('/encode-queue/:id/cancel', (c) => {
   try {
     const id = c.req.param('id');
 
-    const row = db
+    // Check encode_jobs first
+    const encodeRow = db
       .query<Record<string, unknown>, [string]>(
         'SELECT status FROM encode_jobs WHERE id = ?'
       )
       .get(id);
 
-    if (!row) {
-      return c.json<ApiResponse<never>>({
-        success: false,
-        error: `Encode job not found: ${id}`,
+    if (encodeRow) {
+      const status = encodeRow['status'] as string;
+      if (status !== 'pending' && status !== 'running') {
+        return c.json<ApiResponse<never>>({
+          success: false,
+          error: `Cannot cancel a ${status} encode job`,
+          timestamp: new Date().toISOString(),
+        }, 400);
+      }
+
+      db.prepare(`
+        UPDATE encode_jobs
+        SET status = 'cancelled', completed_at = datetime('now')
+        WHERE id = ?
+      `).run(id);
+
+      logAudit('encode.cancelled', 'encode_job', id, null, 'user');
+      log.info(`Encode job ${id} cancelled`);
+
+      return c.json<ApiResponse<{ cancelled: true }>>({
+        success: true,
+        data: { cancelled: true },
         timestamp: new Date().toISOString(),
-      }, 404);
+      });
     }
 
-    const status = row['status'] as string;
-    if (status !== 'pending' && status !== 'running') {
-      return c.json<ApiResponse<never>>({
-        success: false,
-        error: `Cannot cancel a ${status} encode job`,
+    // Check import_jobs
+    const importRow = db
+      .query<Record<string, unknown>, [string]>(
+        'SELECT status FROM import_jobs WHERE id = ?'
+      )
+      .get(id);
+
+    if (importRow) {
+      const status = importRow['status'] as string;
+      if (status !== 'pending' && status !== 'running') {
+        return c.json<ApiResponse<never>>({
+          success: false,
+          error: `Cannot cancel a ${status} import job`,
+          timestamp: new Date().toISOString(),
+        }, 400);
+      }
+
+      db.prepare(`
+        UPDATE import_jobs
+        SET status = 'cancelled', updated_at = datetime('now')
+        WHERE id = ?
+      `).run(id);
+
+      logAudit('import.cancelled', 'import_job', id, null, 'user');
+      log.info(`Import job ${id} cancelled`);
+
+      return c.json<ApiResponse<{ cancelled: true }>>({
+        success: true,
+        data: { cancelled: true },
         timestamp: new Date().toISOString(),
-      }, 400);
+      });
     }
 
-    db.prepare(`
-      UPDATE encode_jobs
-      SET status = 'cancelled', completed_at = datetime('now')
-      WHERE id = ?
-    `).run(id);
-
-    logAudit('encode.cancelled', 'encode_job', id, null, 'user');
-    log.info(`Encode job ${id} cancelled`);
-
-    // TODO: If the job is currently running, signal the FFmpeg process to terminate.
-    // This will be handled by the encoding service when implemented.
-
-    return c.json<ApiResponse<{ cancelled: true }>>({
-      success: true,
-      data: { cancelled: true },
+    return c.json<ApiResponse<never>>({
+      success: false,
+      error: `Job not found: ${id}`,
       timestamp: new Date().toISOString(),
-    });
+    }, 404);
   } catch (err) {
-    log.error('Failed to cancel encode job', {
+    log.error('Failed to cancel job', {
       error: err instanceof Error ? err.message : String(err),
     });
     return c.json<ApiResponse<never>>({
       success: false,
-      error: 'Failed to cancel encode job',
+      error: 'Failed to cancel job',
       timestamp: new Date().toISOString(),
     }, 500);
   }
@@ -240,7 +271,8 @@ encodeQueueRoutes.post('/encode-queue/:id/retry', (c) => {
   try {
     const id = c.req.param('id');
 
-    const row = db
+    // Check encode_jobs first
+    const encodeRow = db
       .query<Record<string, unknown>, [string]>(`
         SELECT media_source_id, status, encoder, preset,
                crf_or_bitrate, input_path, output_path, input_size
@@ -249,58 +281,103 @@ encodeQueueRoutes.post('/encode-queue/:id/retry', (c) => {
       `)
       .get(id);
 
-    if (!row) {
-      return c.json<ApiResponse<never>>({
-        success: false,
-        error: `Encode job not found: ${id}`,
+    if (encodeRow) {
+      if (encodeRow['status'] !== 'failed' && encodeRow['status'] !== 'cancelled') {
+        return c.json<ApiResponse<never>>({
+          success: false,
+          error: `Can only retry failed or cancelled jobs, current status: ${encodeRow['status']}`,
+          timestamp: new Date().toISOString(),
+        }, 400);
+      }
+
+      const newId = uuidv4();
+      const now = new Date().toISOString();
+
+      db.prepare(`
+        INSERT INTO encode_jobs (id, media_source_id, status, encoder, preset,
+                                 crf_or_bitrate, input_path, output_path,
+                                 input_size, progress_percent, created_at)
+        VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, 0, ?)
+      `).run(
+        newId,
+        encodeRow['media_source_id'] as string,
+        encodeRow['encoder'] as string,
+        encodeRow['preset'] as string,
+        encodeRow['crf_or_bitrate'] as string,
+        encodeRow['input_path'] as string,
+        encodeRow['output_path'] as string,
+        encodeRow['input_size'] as number | null,
+        now
+      );
+
+      logAudit('encode.retried', 'encode_job', newId, `Retried from ${id}`, 'user');
+      log.info(`Encode job ${id} retried as ${newId}`);
+
+      return c.json<ApiResponse<{ newJobId: string; originalJobId: string }>>({
+        success: true,
+        data: { newJobId: newId, originalJobId: id },
         timestamp: new Date().toISOString(),
-      }, 404);
+      }, 201);
     }
 
-    if (row['status'] !== 'failed' && row['status'] !== 'cancelled') {
-      return c.json<ApiResponse<never>>({
-        success: false,
-        error: `Can only retry failed or cancelled encode jobs, current status: ${row['status']}`,
+    // Check import_jobs
+    const importRow = db
+      .query<Record<string, unknown>, [string]>(`
+        SELECT media_source_id, status, action, source_path, destination_path
+        FROM import_jobs
+        WHERE id = ?
+      `)
+      .get(id);
+
+    if (importRow) {
+      if (importRow['status'] !== 'failed' && importRow['status'] !== 'cancelled') {
+        return c.json<ApiResponse<never>>({
+          success: false,
+          error: `Can only retry failed or cancelled jobs, current status: ${importRow['status']}`,
+          timestamp: new Date().toISOString(),
+        }, 400);
+      }
+
+      const newId = uuidv4();
+      const now = new Date().toISOString();
+
+      db.prepare(`
+        INSERT INTO import_jobs (id, media_source_id, action, source_path,
+                                 destination_path, status, progress_percent,
+                                 created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+      `).run(
+        newId,
+        importRow['media_source_id'] as string,
+        importRow['action'] as string,
+        importRow['source_path'] as string,
+        importRow['destination_path'] as string,
+        now,
+        now
+      );
+
+      logAudit('import.retried', 'import_job', newId, `Retried from ${id}`, 'user');
+      log.info(`Import job ${id} retried as ${newId}`);
+
+      return c.json<ApiResponse<{ newJobId: string; originalJobId: string }>>({
+        success: true,
+        data: { newJobId: newId, originalJobId: id },
         timestamp: new Date().toISOString(),
-      }, 400);
+      }, 201);
     }
 
-    // Create a new encode job with the same parameters
-    const newId = uuidv4();
-    const now = new Date().toISOString();
-
-    db.prepare(`
-      INSERT INTO encode_jobs (id, media_source_id, status, encoder, preset,
-                               crf_or_bitrate, input_path, output_path,
-                               input_size, progress_percent, created_at)
-      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, 0, ?)
-    `).run(
-      newId,
-      row['media_source_id'] as string,
-      row['encoder'] as string,
-      row['preset'] as string,
-      row['crf_or_bitrate'] as string,
-      row['input_path'] as string,
-      row['output_path'] as string,
-      row['input_size'] as number | null,
-      now
-    );
-
-    logAudit('encode.retried', 'encode_job', newId, `Retried from ${id}`, 'user');
-    log.info(`Encode job ${id} retried as ${newId}`);
-
-    return c.json<ApiResponse<{ newJobId: string; originalJobId: string }>>({
-      success: true,
-      data: { newJobId: newId, originalJobId: id },
+    return c.json<ApiResponse<never>>({
+      success: false,
+      error: `Job not found: ${id}`,
       timestamp: new Date().toISOString(),
-    }, 201);
+    }, 404);
   } catch (err) {
-    log.error('Failed to retry encode job', {
+    log.error('Failed to retry job', {
       error: err instanceof Error ? err.message : String(err),
     });
     return c.json<ApiResponse<never>>({
       success: false,
-      error: 'Failed to retry encode job',
+      error: 'Failed to retry job',
       timestamp: new Date().toISOString(),
     }, 500);
   }
