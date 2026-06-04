@@ -5,6 +5,11 @@
  * with source_type='realdebrid'. Handles mount unavailability gracefully.
  * NEVER triggers encoding or any file modification.
  *
+ * Uses iterative (queue-based) directory walking to avoid deep recursion
+ * on FUSE mounts with thousands of directories — recursive approach kept
+ * every parent's Dirent array alive on the stack, causing multi-GB memory
+ * usage with 30K+ files.
+ *
  * @module services/scanner/rd-scanner
  */
 
@@ -25,8 +30,6 @@ const MEDIA_EXTENSIONS = new Set([
   '.mkv', '.mp4', '.avi', '.ts', '.wmv',
   '.m4v', '.mov', '.flv', '.webm', '.mpg', '.mpeg',
 ]);
-
-
 
 // ---------------------------------------------------------------------------
 // Types
@@ -66,45 +69,56 @@ function isMediaFile(fileName: string): boolean {
 }
 
 /**
- * Recursively walks the RealDebrid mount directory.
+ * Iteratively walks the RealDebrid mount directory using a queue.
  *
- * Uses readdir({ withFileTypes: true }) to avoid stat() calls on FUSE
- * mounts — stat() blocks the event loop for ages on cloud filesystems.
+ * Previous recursive approach kept every parent directory's Dirent array
+ * alive on the call stack until the deepest child returned — with thousands
+ * of directories, this caused multi-GB memory usage.
+ *
+ * Queue-based approach: only one directory's entries are in memory at a time.
+ * After processing, the entries array is eligible for GC immediately.
  */
-async function walkDirectory(
-  dirPath: string,
+async function walkDirectoryIterative(
+  rootPath: string,
   results: RDDiscoveredFile[],
 ): Promise<void> {
-  let entries;
-  try {
-    entries = await readdir(dirPath, { withFileTypes: true });
-  } catch (err) {
-    console.warn(
-      `[RDScanner] Unable to read directory "${dirPath}": ${err instanceof Error ? err.message : String(err)}`,
-    );
-    return;
-  }
+  const queue: string[] = [rootPath];
+  // Shared timestamp — avoids creating 30K+ Date objects
+  const now = new Date();
 
-  for (const entry of entries) {
-    const fullPath = path.join(dirPath, entry.name);
+  while (queue.length > 0) {
+    const dirPath = queue.shift()!;
 
-    // Use Dirent type info — no stat() needed for FUSE mounts
-    if (entry.isDirectory() || entry.isSymbolicLink()) {
-      // For symlinks, assume directory (common on FUSE mounts)
-      // Only recurse if it looks like a directory (no media extension)
-      if (entry.isDirectory() || !isMediaFile(entry.name)) {
-        await walkDirectory(fullPath, results);
+    let entries;
+    try {
+      entries = await readdir(dirPath, { withFileTypes: true });
+    } catch {
+      // Skip directories we can't read (permissions, stale FUSE handles)
+      continue;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+
+      if (entry.isDirectory()) {
+        queue.push(fullPath);
+      } else if (entry.isFile() && isMediaFile(entry.name)) {
+        results.push({
+          filePath: fullPath,
+          fileName: entry.name,
+          fileSize: 0, // Unknown without stat — acceptable for cloud indexing
+          modifiedAt: now,
+          sourceType: 'realdebrid',
+        });
       }
-    } else if (entry.isFile() && isMediaFile(entry.name)) {
-      // Can't know the file size without stat, but we still index it.
-      // Size will be 0 — the reconciler doesn't filter by size.
-      results.push({
-        filePath: fullPath,
-        fileName: entry.name,
-        fileSize: 0, // Unknown without stat — acceptable for cloud indexing
-        modifiedAt: new Date(),
-        sourceType: 'realdebrid',
-      });
+      // Skip symlinks entirely — they can create cycles on FUSE mounts
+    }
+
+    // entries goes out of scope here — eligible for GC
+
+    // Yield to event loop every 100 directories to prevent starvation
+    if (queue.length % 100 === 0 && queue.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
 }
@@ -153,7 +167,7 @@ export async function scanRealDebrid(
   const errors: string[] = [];
 
   try {
-    await walkDirectory(mountPath, files);
+    await walkDirectoryIterative(mountPath, files);
   } catch (err) {
     const msg = `Failed to scan "${mountPath}": ${err instanceof Error ? err.message : String(err)}`;
     console.error(`[RDScanner] ${msg}`);

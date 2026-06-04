@@ -203,7 +203,7 @@ export function Dashboard() {
                     <div className="mt-1 flex items-center gap-2">
                       <MediaBadge type={s.sourceType} />
                       <span className="text-xs text-muted-foreground">
-                        {s.playCount} plays
+                        {s.playCount != null ? `${s.playCount} plays` : ''}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{s.reason}</p>

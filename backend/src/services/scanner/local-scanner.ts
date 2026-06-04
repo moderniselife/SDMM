@@ -61,46 +61,49 @@ function isMediaFile(fileName: string): boolean {
 }
 
 /**
- * Recursively walks a directory tree and collects media files.
+ * Iteratively walks a directory tree and collects media files.
+ * Uses a queue instead of recursion for consistent memory behaviour.
  *
- * @param dirPath - Directory to walk
+ * @param rootPath - Root directory to walk
  * @param results - Accumulator array for discovered files
  */
 async function walkDirectory(
-  dirPath: string,
+  rootPath: string,
   results: DiscoveredFile[],
 ): Promise<void> {
-  let entries: string[];
-  try {
-    entries = await readdir(dirPath);
-  } catch (err) {
-    console.warn(
-      `[LocalScanner] Unable to read directory "${dirPath}": ${err instanceof Error ? err.message : String(err)}`,
-    );
-    return;
-  }
+  const queue: string[] = [rootPath];
 
-  for (const entry of entries) {
-    const fullPath = path.join(dirPath, entry);
+  while (queue.length > 0) {
+    const dirPath = queue.shift()!;
 
-    let fileStat;
+    let entries: string[];
     try {
-      fileStat = await stat(fullPath);
+      entries = await readdir(dirPath);
     } catch {
-      // Skip files we can't stat (permissions, broken symlinks, etc.)
       continue;
     }
 
-    if (fileStat.isDirectory()) {
-      await walkDirectory(fullPath, results);
-    } else if (fileStat.isFile() && isMediaFile(entry) && fileStat.size >= MIN_FILE_SIZE) {
-      results.push({
-        filePath: fullPath,
-        fileName: entry,
-        fileSize: fileStat.size,
-        modifiedAt: fileStat.mtime,
-        sourceType: 'local',
-      });
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry);
+
+      let fileStat;
+      try {
+        fileStat = await stat(fullPath);
+      } catch {
+        continue;
+      }
+
+      if (fileStat.isDirectory()) {
+        queue.push(fullPath);
+      } else if (fileStat.isFile() && isMediaFile(entry) && fileStat.size >= MIN_FILE_SIZE) {
+        results.push({
+          filePath: fullPath,
+          fileName: entry,
+          fileSize: fileStat.size,
+          modifiedAt: fileStat.mtime,
+          sourceType: 'local',
+        });
+      }
     }
   }
 }

@@ -5,6 +5,9 @@
  * with source_type='torbox'. Handles mount unavailability gracefully.
  * NEVER triggers encoding or any file modification.
  *
+ * Uses iterative (queue-based) directory walking to avoid deep recursion
+ * on FUSE mounts — same optimisation as the RealDebrid scanner.
+ *
  * @module services/scanner/torbox-scanner
  */
 
@@ -25,8 +28,6 @@ const MEDIA_EXTENSIONS = new Set([
   '.mkv', '.mp4', '.avi', '.ts', '.wmv',
   '.m4v', '.mov', '.flv', '.webm', '.mpg', '.mpeg',
 ]);
-
-
 
 // ---------------------------------------------------------------------------
 // Types
@@ -66,45 +67,44 @@ function isMediaFile(fileName: string): boolean {
 }
 
 /**
- * Recursively walks the TorBox mount directory.
- *
- * Uses readdir({ withFileTypes: true }) to avoid stat() calls on FUSE
- * mounts — stat() blocks the event loop for ages on cloud filesystems.
+ * Iteratively walks the TorBox mount directory using a queue.
+ * Same memory-optimised approach as the RealDebrid scanner.
  */
-async function walkDirectory(
-  dirPath: string,
+async function walkDirectoryIterative(
+  rootPath: string,
   results: TorBoxDiscoveredFile[],
 ): Promise<void> {
-  let entries;
-  try {
-    entries = await readdir(dirPath, { withFileTypes: true });
-  } catch (err) {
-    console.warn(
-      `[TorBoxScanner] Unable to read directory "${dirPath}": ${err instanceof Error ? err.message : String(err)}`,
-    );
-    return;
-  }
+  const queue: string[] = [rootPath];
+  const now = new Date();
 
-  for (const entry of entries) {
-    const fullPath = path.join(dirPath, entry.name);
+  while (queue.length > 0) {
+    const dirPath = queue.shift()!;
 
-    // Use Dirent type info — no stat() needed for FUSE mounts
-    if (entry.isDirectory() || entry.isSymbolicLink()) {
-      // For symlinks, assume directory (common on FUSE mounts)
-      // Only recurse if it looks like a directory (no media extension)
-      if (entry.isDirectory() || !isMediaFile(entry.name)) {
-        await walkDirectory(fullPath, results);
+    let entries;
+    try {
+      entries = await readdir(dirPath, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+
+      if (entry.isDirectory()) {
+        queue.push(fullPath);
+      } else if (entry.isFile() && isMediaFile(entry.name)) {
+        results.push({
+          filePath: fullPath,
+          fileName: entry.name,
+          fileSize: 0,
+          modifiedAt: now,
+          sourceType: 'torbox',
+        });
       }
-    } else if (entry.isFile() && isMediaFile(entry.name)) {
-      // Can't know the file size without stat, but we still index it.
-      // Size will be 0 — the reconciler doesn't filter by size.
-      results.push({
-        filePath: fullPath,
-        fileName: entry.name,
-        fileSize: 0, // Unknown without stat — acceptable for cloud indexing
-        modifiedAt: new Date(),
-        sourceType: 'torbox',
-      });
+    }
+
+    if (queue.length % 100 === 0 && queue.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
 }
@@ -116,12 +116,6 @@ async function walkDirectory(
 /**
  * Scans the TorBox cloud mount for media files.
  *
- * Handles FUSE mount unavailability gracefully — logs a warning and
- * returns an empty result rather than throwing.
- *
- * IMPORTANT: This scanner NEVER triggers encoding or file modification.
- * Files are indexed read-only.
- *
  * @param mountPath - Override the default mount path (for testing)
  * @returns Object with discovered files and scan result summary
  */
@@ -130,7 +124,6 @@ export async function scanTorBox(
 ): Promise<{ files: TorBoxDiscoveredFile[]; result: ScanResult }> {
   const startTime = Date.now();
 
-  // Check if the FUSE mount is accessible
   const available = await isMountAvailable(mountPath);
   if (!available) {
     console.warn(
@@ -153,7 +146,7 @@ export async function scanTorBox(
   const errors: string[] = [];
 
   try {
-    await walkDirectory(mountPath, files);
+    await walkDirectoryIterative(mountPath, files);
   } catch (err) {
     const msg = `Failed to scan "${mountPath}": ${err instanceof Error ? err.message : String(err)}`;
     console.error(`[TorBoxScanner] ${msg}`);

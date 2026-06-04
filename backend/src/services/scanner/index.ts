@@ -5,6 +5,10 @@
  * reconciles discovered files with the database, and triggers
  * background metadata enrichment for new items.
  *
+ * Memory-optimised: each scanner's file array is released
+ * immediately after reconciliation — no concurrent retention
+ * of all three arrays.
+ *
  * @module services/scanner
  */
 
@@ -38,8 +42,10 @@ let periodicScanTimer: ReturnType<typeof setInterval> | null = null;
  * then reconciles discovered files with the database and triggers
  * background metadata enrichment for newly discovered items.
  *
- * Uses a lock to prevent overlapping scans. If a scan is already in
- * progress, logs a warning and returns empty results.
+ * Memory-optimised: file arrays are dereferenced immediately after
+ * reconciliation so GC can reclaim them before the next scanner runs.
+ *
+ * Uses a lock to prevent overlapping scans.
  *
  * @returns Array of scan results from each scanner
  */
@@ -56,46 +62,57 @@ export async function scanAll(): Promise<ScanResult[]> {
   try {
     log.info('Starting full scan of all sources...');
 
-    // 1. Local scan → reconcile
-    const localScan = await scanLocal();
-    results.push(localScan.result);
-    eventBus.emitScanComplete('local', localScan.result.filesFound);
+    // 1. Local scan → reconcile → release files
+    {
+      const localScan = await scanLocal();
+      results.push(localScan.result);
+      eventBus.emitScanComplete('local', localScan.result.filesFound);
 
-    if (localScan.files.length > 0) {
-      const localReconcile = await reconcileFiles(localScan.files, 'local');
-      log.info(`Local reconcile: ${localReconcile.newItems} new, ${localReconcile.updatedItems} updated`);
-      localScan.result.filesNew = localReconcile.newItems;
-      localScan.result.filesUpdated = localReconcile.updatedItems;
-
-      totalNewItems += localReconcile.newItems;
+      if (localScan.files.length > 0) {
+        const localReconcile = await reconcileFiles(localScan.files, 'local');
+        log.info(`Local reconcile: ${localReconcile.newItems} new, ${localReconcile.updatedItems} updated`);
+        localScan.result.filesNew = localReconcile.newItems;
+        localScan.result.filesUpdated = localReconcile.updatedItems;
+        totalNewItems += localReconcile.newItems;
+      }
+      // localScan goes out of scope here — files array eligible for GC
     }
 
-    // 2. RealDebrid scan → reconcile (read-only, do_not_process)
-    const rdScan = await scanRealDebrid();
-    results.push(rdScan.result);
-    eventBus.emitScanComplete('realdebrid', rdScan.result.filesFound);
+    // Yield to event loop + give GC a chance
+    await new Promise(resolve => setTimeout(resolve, 50));
 
-    if (rdScan.files.length > 0) {
-      const rdReconcile = await reconcileFiles(rdScan.files, 'realdebrid');
-      log.info(`RealDebrid reconcile: ${rdReconcile.newItems} new, ${rdReconcile.updatedItems} updated`);
-      rdScan.result.filesNew = rdReconcile.newItems;
-      rdScan.result.filesUpdated = rdReconcile.updatedItems;
+    // 2. RealDebrid scan → reconcile → release files
+    {
+      const rdScan = await scanRealDebrid();
+      results.push(rdScan.result);
+      eventBus.emitScanComplete('realdebrid', rdScan.result.filesFound);
 
-      totalNewItems += rdReconcile.newItems;
+      if (rdScan.files.length > 0) {
+        const rdReconcile = await reconcileFiles(rdScan.files, 'realdebrid');
+        log.info(`RealDebrid reconcile: ${rdReconcile.newItems} new, ${rdReconcile.updatedItems} updated`);
+        rdScan.result.filesNew = rdReconcile.newItems;
+        rdScan.result.filesUpdated = rdReconcile.updatedItems;
+        totalNewItems += rdReconcile.newItems;
+      }
+      // rdScan goes out of scope here — files array eligible for GC
     }
 
-    // 3. TorBox scan → reconcile (read-only, do_not_process)
-    const torboxScan = await scanTorBox();
-    results.push(torboxScan.result);
-    eventBus.emitScanComplete('torbox', torboxScan.result.filesFound);
+    await new Promise(resolve => setTimeout(resolve, 50));
 
-    if (torboxScan.files.length > 0) {
-      const torboxReconcile = await reconcileFiles(torboxScan.files, 'torbox');
-      log.info(`TorBox reconcile: ${torboxReconcile.newItems} new, ${torboxReconcile.updatedItems} updated`);
-      torboxScan.result.filesNew = torboxReconcile.newItems;
-      torboxScan.result.filesUpdated = torboxReconcile.updatedItems;
+    // 3. TorBox scan → reconcile → release files
+    {
+      const torboxScan = await scanTorBox();
+      results.push(torboxScan.result);
+      eventBus.emitScanComplete('torbox', torboxScan.result.filesFound);
 
-      totalNewItems += torboxReconcile.newItems;
+      if (torboxScan.files.length > 0) {
+        const torboxReconcile = await reconcileFiles(torboxScan.files, 'torbox');
+        log.info(`TorBox reconcile: ${torboxReconcile.newItems} new, ${torboxReconcile.updatedItems} updated`);
+        torboxScan.result.filesNew = torboxReconcile.newItems;
+        torboxScan.result.filesUpdated = torboxReconcile.updatedItems;
+        totalNewItems += torboxReconcile.newItems;
+      }
+      // torboxScan goes out of scope here — files array eligible for GC
     }
 
     const totalFiles = results.reduce((sum, r) => sum + r.filesFound, 0);
@@ -106,8 +123,6 @@ export async function scanAll(): Promise<ScanResult[]> {
     );
 
     // 4. Background metadata enrichment for new items (deferred, non-blocking)
-    //    Scheduled with a small delay so the scan result is returned first
-    //    and the event loop isn't blocked by enrichment API calls.
     if (totalNewItems > 0) {
       log.info(`Scheduling background metadata enrichment for ${totalNewItems} new item(s) (5s delay)...`);
       setTimeout(async () => {

@@ -16,6 +16,7 @@ import { streamSSE } from 'hono/streaming';
 import { readdir, stat, lstat } from 'fs/promises';
 import { join } from 'path';
 import { config } from '../config';
+import { db } from '../db/connection';
 import { createLogger } from '../utils/logger';
 import type { ApiResponse, FileEntry } from '../types';
 
@@ -421,5 +422,185 @@ sourcesRoutes.get('/sources/torbox', async (c) => {
       error: errorMsg.includes('traversal') ? 'Invalid path' : `Failed to browse TorBox: ${errorMsg}`,
       timestamp: new Date().toISOString(),
     }, status);
+  }
+});
+
+// =============================================================================
+// Source-level action routes
+// =============================================================================
+// The frontend calls these when performing actions on a specific media_source.
+// Routes: POST /api/sources/:id/encode, /copy, /preserve
+
+/**
+ * Looks up a media_source by its ID.
+ */
+function getSourceById(sourceId: string) {
+  return db
+    .prepare(`
+      SELECT id, media_item_id, source_type, file_path, file_name,
+             file_size, status, do_not_process
+      FROM media_sources
+      WHERE id = ?
+    `)
+    .get(sourceId) as Record<string, unknown> | null;
+}
+
+/**
+ * Creates an import job record for a source-level action.
+ */
+function createSourceImportJob(
+  source: Record<string, unknown>,
+  action: string,
+) {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const fileName = source['file_name'] as string;
+  const sourcePath = source['file_path'] as string;
+  const destinationPath = `/media/library/${fileName}`;
+
+  db.prepare(`
+    INSERT INTO import_jobs (id, media_source_id, source_type, action,
+                             source_path, destination_path, status,
+                             progress_percent, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+  `).run(
+    id,
+    source['id'] as string,
+    source['source_type'] as string,
+    action,
+    sourcePath,
+    destinationPath,
+    now,
+    now,
+  );
+
+  return {
+    id,
+    mediaSourceId: source['id'] as string,
+    sourceType: source['source_type'] as string,
+    action,
+    sourcePath,
+    destinationPath,
+    status: 'pending',
+    progressPercent: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * POST /api/sources/:id/encode
+ *
+ * Creates an encode import job for a specific media source.
+ */
+sourcesRoutes.post('/sources/:id/encode', async (c) => {
+  try {
+    const sourceId = c.req.param('id');
+    const source = getSourceById(sourceId);
+
+    if (!source) {
+      return c.json<ApiResponse<never>>({
+        success: false,
+        error: `Media source not found: ${sourceId}`,
+        timestamp: new Date().toISOString(),
+      }, 404);
+    }
+
+    const job = createSourceImportJob(source, 'copy_and_encode');
+
+    log.info(`Created encode job for source ${sourceId}`, { jobId: job.id });
+
+    return c.json<ApiResponse<typeof job>>({
+      success: true,
+      data: job,
+      timestamp: new Date().toISOString(),
+    }, 201);
+  } catch (err) {
+    log.error('Failed to create encode job', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return c.json<ApiResponse<never>>({
+      success: false,
+      error: 'Failed to create encode job',
+      timestamp: new Date().toISOString(),
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/sources/:id/copy
+ *
+ * Creates a copy-to-local import job for a specific media source.
+ */
+sourcesRoutes.post('/sources/:id/copy', async (c) => {
+  try {
+    const sourceId = c.req.param('id');
+    const source = getSourceById(sourceId);
+
+    if (!source) {
+      return c.json<ApiResponse<never>>({
+        success: false,
+        error: `Media source not found: ${sourceId}`,
+        timestamp: new Date().toISOString(),
+      }, 404);
+    }
+
+    const job = createSourceImportJob(source, 'copy');
+
+    log.info(`Created copy job for source ${sourceId}`, { jobId: job.id });
+
+    return c.json<ApiResponse<typeof job>>({
+      success: true,
+      data: job,
+      timestamp: new Date().toISOString(),
+    }, 201);
+  } catch (err) {
+    log.error('Failed to create copy job', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return c.json<ApiResponse<never>>({
+      success: false,
+      error: 'Failed to create copy job',
+      timestamp: new Date().toISOString(),
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/sources/:id/preserve
+ *
+ * Creates a preservation import job for a specific media source.
+ */
+sourcesRoutes.post('/sources/:id/preserve', async (c) => {
+  try {
+    const sourceId = c.req.param('id');
+    const source = getSourceById(sourceId);
+
+    if (!source) {
+      return c.json<ApiResponse<never>>({
+        success: false,
+        error: `Media source not found: ${sourceId}`,
+        timestamp: new Date().toISOString(),
+      }, 404);
+    }
+
+    const job = createSourceImportJob(source, 'preserve');
+
+    log.info(`Created preserve job for source ${sourceId}`, { jobId: job.id });
+
+    return c.json<ApiResponse<typeof job>>({
+      success: true,
+      data: job,
+      timestamp: new Date().toISOString(),
+    }, 201);
+  } catch (err) {
+    log.error('Failed to create preserve job', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return c.json<ApiResponse<never>>({
+      success: false,
+      error: 'Failed to create preserve job',
+      timestamp: new Date().toISOString(),
+    }, 500);
   }
 });

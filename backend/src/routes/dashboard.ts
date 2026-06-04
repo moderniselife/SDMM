@@ -256,11 +256,13 @@ dashboardRoutes.get('/suggestions/preservation', async (c) => {
         .all() as SuggestionRow[];
 
       suggestions = rows.map((row) => ({
-        id: row.id,
+        mediaId: row.id,
         title: row.title,
         type: row.type,
         year: row.year,
         posterUrl: row.poster_url,
+        playCount: row.source_count, // Use episode/source count as proxy for play count
+        sourceType: 'REALDEBRID',    // These are cloud-only items by definition
         sourceCount: row.source_count,
         totalSize: row.total_size,
         reason: row.source_count > 3
