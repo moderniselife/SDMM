@@ -84,7 +84,7 @@ encodeQueueRoutes.get('/encode-queue', (c) => {
       .query<Record<string, unknown>, []>(`
         SELECT id, media_source_id, source_type, action,
                source_path, destination_path, status,
-               progress_percent, error_message,
+               progress_percent,
                created_at, updated_at
         FROM import_jobs
         ORDER BY
@@ -121,7 +121,7 @@ encodeQueueRoutes.get('/encode-queue', (c) => {
         progressPercent: (row['progress_percent'] as number) ?? 0,
         startedAt: null,
         completedAt: null,
-        errorMessage: (row['error_message'] as string) ?? null,
+        errorMessage: null,
         ffmpegCommand: null,
         createdAt: row['created_at'] as string,
       });
