@@ -15,7 +15,16 @@ interface MediaCardProps {
 
 export function MediaCard({ item, className }: MediaCardProps) {
   const navigate = useNavigate();
-  const primarySource = (item.sources[0]?.sourceType ?? 'local').toUpperCase();
+  // Pick the most relevant source badge:
+  // - If any source is local, show LOCAL
+  // - Otherwise show the first cloud source type (REALDEBRID, TORBOX)
+  // - Only fall back to UNKNOWN if sources array is truly empty
+  const primarySource = (() => {
+    if (!item.sources || item.sources.length === 0) return 'UNKNOWN';
+    const local = item.sources.find((s) => s.sourceType.toLowerCase() === 'local');
+    if (local) return 'LOCAL';
+    return (item.sources[0]?.sourceType ?? 'UNKNOWN').toUpperCase();
+  })();
 
   return (
     <div

@@ -45,10 +45,10 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
       # Plex integration
-      - PLEX_URL=http://172.17.0.1:32400
+      - PLEX_URL=http://192.168.1.124:32400
       - PLEX_TOKEN=${PLEX_TOKEN}
       # Tautulli integration
-      - TAUTULLI_URL=http://172.17.0.1:8181
+      - TAUTULLI_URL=http://192.168.1.124:8181
       - TAUTULLI_API_KEY=${TAUTULLI_API_KEY}
       # qBittorrent integration
       - QBITTORRENT_URL=http://qbittorrent:8080

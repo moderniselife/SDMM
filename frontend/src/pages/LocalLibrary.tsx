@@ -26,14 +26,14 @@ function MediaGridSkeleton() {
 }
 
 export function LocalLibrary() {
-  const { source, resolution, codec, status, sort, sortDir, currentPage, pageSize } =
+  const { resolution, codec, status, sort, sortDir, currentPage, pageSize } =
     useMediaStore();
   const setPage = useMediaStore((s) => s.setPage);
 
   const { data, loading, error } = useApi(
     () =>
       fetchMedia({
-        source,
+        source: 'LOCAL', // Local Library page — only show local sources
         resolution,
         codec,
         status,
@@ -42,7 +42,7 @@ export function LocalLibrary() {
         page: currentPage,
         pageSize,
       }),
-    [source, resolution, codec, status, sort, sortDir, currentPage, pageSize],
+    [resolution, codec, status, sort, sortDir, currentPage, pageSize],
   );
 
   const items = data?.items ?? [];

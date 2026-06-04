@@ -16,7 +16,19 @@
   },
   "scanner": {
     "intervalMinutes": 15,
-    "mediaExtensions": [".mkv", ".mp4", ".avi", ".ts", ".wmv", ".m4v", ".mov", ".flv", ".webm", ".mpg", ".mpeg"],
+    "mediaExtensions": [
+      ".mkv",
+      ".mp4",
+      ".avi",
+      ".ts",
+      ".wmv",
+      ".m4v",
+      ".mov",
+      ".flv",
+      ".webm",
+      ".mpg",
+      ".mpeg"
+    ],
     "minFileSizeBytes": 104857600
   },
   "encoding": {
@@ -33,28 +45,88 @@
     ],
     "presets": {
       "cpu_x265": {
-        "4k_hdr": { "crf": 19, "preset": "slow", "pixFmt": "yuv420p10le" },
-        "4k_sdr": { "crf": 21, "preset": "slow", "pixFmt": "yuv420p10le" },
-        "1080p":  { "crf": 22, "preset": "slow", "pixFmt": "yuv420p10le" },
-        "720p":   { "crf": 24, "preset": "slow", "pixFmt": "yuv420p10le" },
-        "480p":   { "crf": 25, "preset": "slow", "pixFmt": "yuv420p10le" }
+        "4k_hdr": {
+          "crf": 19,
+          "preset": "slow",
+          "pixFmt": "yuv420p10le"
+        },
+        "4k_sdr": {
+          "crf": 21,
+          "preset": "slow",
+          "pixFmt": "yuv420p10le"
+        },
+        "1080p": {
+          "crf": 22,
+          "preset": "slow",
+          "pixFmt": "yuv420p10le"
+        },
+        "720p": {
+          "crf": 24,
+          "preset": "slow",
+          "pixFmt": "yuv420p10le"
+        },
+        "480p": {
+          "crf": 25,
+          "preset": "slow",
+          "pixFmt": "yuv420p10le"
+        }
       },
       "nvenc": {
-        "4k_hdr": { "bitrate": "20M", "maxrate": "24M", "preset": "p6", "pixFmt": "p010le" },
-        "4k_sdr": { "bitrate": "15M", "maxrate": "18M", "preset": "p6", "pixFmt": "p010le" },
-        "1080p":  { "bitrate": "6M",  "maxrate": "8M",  "preset": "p6", "pixFmt": "p010le" },
-        "720p":   { "bitrate": "3M",  "maxrate": "4M",  "preset": "p6", "pixFmt": "p010le" },
-        "480p":   { "bitrate": "1.5M","maxrate": "2M",  "preset": "p6", "pixFmt": "p010le" }
+        "4k_hdr": {
+          "bitrate": "20M",
+          "maxrate": "24M",
+          "preset": "p6",
+          "pixFmt": "p010le"
+        },
+        "4k_sdr": {
+          "bitrate": "15M",
+          "maxrate": "18M",
+          "preset": "p6",
+          "pixFmt": "p010le"
+        },
+        "1080p": {
+          "bitrate": "6M",
+          "maxrate": "8M",
+          "preset": "p6",
+          "pixFmt": "p010le"
+        },
+        "720p": {
+          "bitrate": "3M",
+          "maxrate": "4M",
+          "preset": "p6",
+          "pixFmt": "p010le"
+        },
+        "480p": {
+          "bitrate": "1.5M",
+          "maxrate": "2M",
+          "preset": "p6",
+          "pixFmt": "p010le"
+        }
       }
     },
-    "skipCodecs": ["av1"],
-    "reencodeCodecs": ["h264", "mpeg2video", "vc1", "msmpeg4v3", "mpeg4", "vp8"],
+    "skipCodecs": [
+      "av1"
+    ],
+    "reencodeCodecs": [
+      "h264",
+      "mpeg2video",
+      "vc1",
+      "msmpeg4v3",
+      "mpeg4",
+      "vp8"
+    ],
     "durationToleranceSeconds": 2,
     "minSavingPercent": 10
   },
   "audio": {
     "preserveAllTracks": true,
-    "copyCodecs": ["aac", "ac3", "eac3", "dts", "truehd"],
+    "copyCodecs": [
+      "aac",
+      "ac3",
+      "eac3",
+      "dts",
+      "truehd"
+    ],
     "convertHighBitrateToEac3": false,
     "singleAudioMode": false
   },
@@ -64,11 +136,11 @@
   },
   "integrations": {
     "plex": {
-      "url": "http://172.17.0.1:32400",
+      "url": "http://192.168.1.124:32400",
       "autoRefreshOnImport": true
     },
     "tautulli": {
-      "url": "http://172.17.0.1:8181",
+      "url": "http://192.168.1.124:8181",
       "preservationThresholdPlays": 3,
       "preservationLookbackDays": 90
     },

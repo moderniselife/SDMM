@@ -90,12 +90,12 @@ const subtitlesSchema = z.object({
 });
 
 const plexIntegrationSchema = z.object({
-  url: z.string().url().default('http://172.17.0.1:32400'),
+  url: z.string().url().default('http://192.168.1.124:32400'),
   autoRefreshOnImport: z.boolean().default(true),
 });
 
 const tautulliIntegrationSchema = z.object({
-  url: z.string().url().default('http://172.17.0.1:8181'),
+  url: z.string().url().default('http://192.168.1.124:8181'),
   preservationThresholdPlays: z.number().int().min(1).default(3),
   preservationLookbackDays: z.number().int().min(1).default(90),
 });
