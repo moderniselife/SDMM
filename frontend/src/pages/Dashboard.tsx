@@ -127,15 +127,21 @@ function ErrorBanner({ message }: { message: string }) {
 export function Dashboard() {
   const { data: rawStats, loading: statsLoading, error: statsError } = useApi(
     fetchDashboard,
+    [],
+    { pollInterval: 30_000 },
   );
   const { data: rawActivity, loading: activityLoading } = useApi(
     () => fetchActivity(10),
   );
   const { data: suggestions, loading: suggestionsLoading } = useApi(
     fetchPreservationSuggestions,
+    [],
+    { retryOnEmpty: true },
   );
   const { data: encodeJobs, loading: encodesLoading } = useApi(
     fetchEncodeQueue,
+    [],
+    { pollInterval: 10_000 },
   );
 
   // Transform backend responses to frontend types
