@@ -6,7 +6,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/pages/Dashboard';
+import { AllMedia } from '@/pages/AllMedia';
 import { LocalLibrary } from '@/pages/LocalLibrary';
+import { CloudLibrary } from '@/pages/CloudLibrary';
 import { PlexLibrary } from '@/pages/PlexLibrary';
 import { RealDebridBrowser } from '@/pages/RealDebridBrowser';
 import { TorBoxBrowser } from '@/pages/TorBoxBrowser';
@@ -23,7 +25,9 @@ export default function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/all-media" element={<AllMedia />} />
             <Route path="/library" element={<LocalLibrary />} />
+            <Route path="/cloud" element={<CloudLibrary />} />
             <Route path="/plex" element={<PlexLibrary />} />
             <Route path="/realdebrid" element={<RealDebridBrowser />} />
             <Route path="/torbox" element={<TorBoxBrowser />} />

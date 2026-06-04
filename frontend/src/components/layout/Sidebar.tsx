@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   HardDrive,
   Cloud,
+  CloudCog,
   Package,
   Download,
   Cpu,
@@ -16,6 +17,7 @@ import {
   ChevronRight,
   Disc3,
   Tv2,
+  Library,
 } from 'lucide-react';
 import { cn, formatBytes } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -26,7 +28,9 @@ import { fetchDashboard } from '@/lib/api';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/all-media', label: 'All Media', icon: Library },
   { to: '/library', label: 'Local Library', icon: HardDrive },
+  { to: '/cloud', label: 'Cloud Library', icon: CloudCog },
   { to: '/plex', label: 'Plex Library', icon: Tv2 },
   { to: '/realdebrid', label: 'RealDebrid', icon: Cloud },
   { to: '/torbox', label: 'TorBox', icon: Package },
