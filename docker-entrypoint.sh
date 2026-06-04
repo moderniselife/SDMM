@@ -26,8 +26,13 @@ if [ ! -f /config/config.json ]; then
     echo "Created default config at /config/config.json"
 fi
 
-# Ensure directory ownership
+# Ensure directory ownership (including /media for import worker)
 chown -R schrodrive:schrodrive /config /app/logs 2>/dev/null || true
+# Only chown top-level /media dirs — don't recurse into cloud mounts
+for dir in /media/library /media/staging /media/downloads; do
+    mkdir -p "$dir" 2>/dev/null || true
+    chown schrodrive:schrodrive "$dir" 2>/dev/null || true
+done
 
 # Drop to app user and execute
 exec gosu schrodrive "$@"
