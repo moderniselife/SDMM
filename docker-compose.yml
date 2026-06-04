@@ -16,8 +16,8 @@ services:
     container_name: schrodrive-media
     restart: unless-stopped
     runtime: nvidia
-    mem_limit: 4g
-    memswap_limit: 4g
+    mem_limit: 8g
+    memswap_limit: 12g
     ports:
       - "8686:8686"
     volumes:

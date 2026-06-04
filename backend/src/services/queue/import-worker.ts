@@ -129,6 +129,10 @@ async function safeCopy(
     }
 
     await writer.end();
+
+    // Force GC after the copy — the streaming read accumulates buffers.
+    // Also gives the kernel a chance to reclaim FUSE page cache.
+    Bun.gc(true);
   } catch (err) {
     // Clean up partial file on error
     try {
