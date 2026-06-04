@@ -95,11 +95,20 @@ async function safeCopy(
 
   let copiedBytes = 0;
   let lastReportedPercent = -1;
+  let chunksSinceYield = 0;
+
+  // Yield to the event loop every ~10MB to prevent starvation.
+  // FUSE reads + disk writes can monopolise the thread for seconds
+  // on large media files (5-50GB), blocking all HTTP handlers.
+  const YIELD_EVERY_BYTES = 10 * 1024 * 1024; // 10MB
+  let bytesSinceYield = 0;
 
   try {
     for await (const chunk of sourceStream) {
       writer.write(chunk);
       copiedBytes += chunk.byteLength;
+      bytesSinceYield += chunk.byteLength;
+      chunksSinceYield++;
 
       const percent = totalSize > 0
         ? Math.min(100, Math.round((copiedBytes / totalSize) * 100))
@@ -109,6 +118,13 @@ async function safeCopy(
       if (percent !== lastReportedPercent) {
         lastReportedPercent = percent;
         onProgress(percent);
+      }
+
+      // Yield to event loop periodically so HTTP requests can be served
+      if (bytesSinceYield >= YIELD_EVERY_BYTES) {
+        bytesSinceYield = 0;
+        await writer.flush();
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
     }
 
@@ -173,11 +189,17 @@ async function processNextImport(): Promise<void> {
     try {
       const copiedFile = Bun.file(job.destinationPath);
       const copiedSize = copiedFile.size;
-      if (copiedSize !== job.fileSizeBytes) {
+
+      if (job.fileSizeBytes > 0 && copiedSize !== job.fileSizeBytes) {
+        // Known expected size — strict comparison
         throw new Error(
           `Size mismatch: expected ${job.fileSizeBytes} bytes, got ${copiedSize} bytes`,
         );
+      } else if (copiedSize === 0) {
+        // File is empty — always invalid regardless of expected size
+        throw new Error('Copied file is empty (0 bytes)');
       }
+      // If fileSizeBytes is 0 (cloud files — no stat on FUSE), just check it's non-empty
     } catch (err) {
       const msg = `Verification failed: ${err instanceof Error ? err.message : String(err)}`;
       console.error(`[ImportWorker] ${msg}`);
