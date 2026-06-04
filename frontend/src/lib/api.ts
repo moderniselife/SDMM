@@ -170,8 +170,44 @@ export async function uploadTorrent(file: File): Promise<Download> {
 // ── Encode Queue ───────────────────────────────────────────
 
 export async function fetchEncodeQueue(): Promise<EncodeJob[]> {
-  const res = await api.get('encode-queue').json<ApiResponse<EncodeJob[]>>();
-  return res.data;
+  interface BackendEncodeJob {
+    id: string;
+    mediaSourceId: string;
+    status: string;
+    encoder: string;
+    preset: string;
+    crfOrBitrate: string;
+    inputPath: string;
+    outputPath: string;
+    inputSize: number | null;
+    outputSize: number | null;
+    progressPercent: number;
+    startedAt: string | null;
+    completedAt: string | null;
+    errorMessage: string | null;
+    ffmpegCommand: string | null;
+    createdAt: string;
+  }
+
+  const res = await api.get('encode-queue').json<ApiResponse<BackendEncodeJob[]>>();
+
+  return res.data.map((job) => ({
+    id: job.id,
+    mediaId: '',
+    sourceId: job.mediaSourceId,
+    inputFile: job.inputPath,
+    outputFile: job.outputPath,
+    encoder: job.encoder as EncodeJob['encoder'],
+    preset: job.preset,
+    status: job.status.toUpperCase() as EncodeJob['status'],
+    progress: job.progressPercent,
+    inputSize: job.inputSize ?? 0,
+    outputSize: job.outputSize ?? undefined,
+    startedAt: job.startedAt ?? undefined,
+    completedAt: job.completedAt ?? undefined,
+    errorMessage: job.errorMessage ?? undefined,
+    createdAt: job.createdAt,
+  }));
 }
 
 export async function cancelEncode(id: string): Promise<void> {

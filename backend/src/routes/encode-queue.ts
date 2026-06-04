@@ -44,18 +44,19 @@ function rowToEncodeJob(row: Record<string, unknown>): EncodeJob {
 }
 
 // =============================================================================
-// GET /api/encode-queue
-// =============================================================================
-
 /**
  * GET /api/encode-queue
  *
- * Returns all encode jobs sorted by status priority:
+ * Returns all encode jobs AND import jobs sorted by status priority:
  * running first, then pending, then completed/failed/cancelled.
+ *
+ * Import jobs (copy, encode, preserve) are mapped to the same EncodeJob
+ * shape so the frontend can display them uniformly.
  */
 encodeQueueRoutes.get('/encode-queue', (c) => {
   try {
-    const rows = db
+    // 1. Fetch actual encode_jobs
+    const encodeRows = db
       .query<Record<string, unknown>, []>(`
         SELECT id, media_source_id, status, encoder, preset,
                crf_or_bitrate, input_path, output_path,
@@ -76,7 +77,72 @@ encodeQueueRoutes.get('/encode-queue', (c) => {
       `)
       .all();
 
-    const jobs = rows.map(rowToEncodeJob);
+    const jobs = encodeRows.map(rowToEncodeJob);
+
+    // 2. Fetch import_jobs and map to EncodeJob shape
+    const importRows = db
+      .query<Record<string, unknown>, []>(`
+        SELECT id, media_source_id, source_type, action,
+               source_path, destination_path, status,
+               progress_percent, error_message,
+               created_at, updated_at
+        FROM import_jobs
+        ORDER BY
+          CASE status
+            WHEN 'running' THEN 1
+            WHEN 'pending' THEN 2
+            WHEN 'completed' THEN 3
+            WHEN 'failed' THEN 4
+            WHEN 'cancelled' THEN 5
+          END,
+          created_at DESC
+      `)
+      .all();
+
+    for (const row of importRows) {
+      const action = row['action'] as string;
+      const encoderLabel =
+        action === 'copy_and_encode' ? 'copy+encode' :
+        action === 'copy' ? 'copy' :
+        action === 'preserve' ? 'preserve' :
+        action;
+
+      jobs.push({
+        id: row['id'] as string,
+        mediaSourceId: row['media_source_id'] as string,
+        status: (row['status'] as string).toUpperCase() as EncodeJob['status'],
+        encoder: encoderLabel as EncodeJob['encoder'],
+        preset: action,
+        crfOrBitrate: '',
+        inputPath: row['source_path'] as string,
+        outputPath: row['destination_path'] as string,
+        inputSize: null,
+        outputSize: null,
+        progressPercent: (row['progress_percent'] as number) ?? 0,
+        startedAt: null,
+        completedAt: null,
+        errorMessage: (row['error_message'] as string) ?? null,
+        ffmpegCommand: null,
+        createdAt: row['created_at'] as string,
+      });
+    }
+
+    // Sort unified list by status priority
+    const statusPriority: Record<string, number> = {
+      RUNNING: 1, running: 1,
+      PENDING: 2, pending: 2,
+      COMPLETED: 3, completed: 3,
+      FAILED: 4, failed: 4,
+      CANCELLED: 5, cancelled: 5,
+      SKIPPED: 6, skipped: 6,
+    };
+
+    jobs.sort((a, b) => {
+      const aPriority = statusPriority[a.status] ?? 99;
+      const bPriority = statusPriority[b.status] ?? 99;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     return c.json<ApiResponse<EncodeJob[]>>({
       success: true,
