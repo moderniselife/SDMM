@@ -109,26 +109,33 @@ try {
 }
 
 // Start periodic scanner (scan → reconcile → enrich)
+// First scan runs at 30s, then every N minutes
 const scanInterval = config.scanner?.intervalMinutes ?? 15;
 startPeriodicScan(scanInterval);
-logger.info(`Periodic scanner started (every ${scanInterval} minutes)`);
+logger.info(`Periodic scanner started (every ${scanInterval} minutes, first scan in 30s)`);
 
-// Start periodic Tautulli watch stats sync
-startPeriodicWatchSync(30);
-logger.info('Periodic watch stats sync started (every 30 minutes)');
-
-// Background Plex library sync (non-blocking)
-syncPlexLibrary()
-  .then((result) => {
-    logger.info(`Initial Plex library sync complete: ${result.imported} imported, ${result.matched} matched`);
-  })
-  .catch((err) => {
-    logger.warn('Initial Plex library sync failed (will retry on next scan)', {
-      error: err instanceof Error ? err.message : String(err),
+// Defer Plex library sync until AFTER the first scan has had time to complete.
+// Running simultaneously with the scanner caused memory competition.
+setTimeout(() => {
+  logger.info('Starting deferred Plex library sync...');
+  syncPlexLibrary()
+    .then((plexResult) => {
+      logger.info(`Plex library sync complete: ${plexResult.imported} imported, ${plexResult.matched} matched`);
+    })
+    .catch((err) => {
+      logger.warn('Plex library sync failed (will retry on next schedule)', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     });
-  });
+}, 60_000); // 60s — gives the scanner time to finish first
 
-logger.info('All background services started');
+// Defer watch stats sync even further — requires Plex matches to exist
+setTimeout(() => {
+  startPeriodicWatchSync(30);
+  logger.info('Periodic watch stats sync started (every 30 minutes)');
+}, 90_000); // 90s — after Plex sync has had time to create matches
+
+logger.info('All background services scheduled');
 
 // =============================================================================
 // Graceful Shutdown

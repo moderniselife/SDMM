@@ -152,6 +152,32 @@ export async function syncWatchStatsForItem(mediaItemId: string): Promise<void> 
  * @param mediaItemId - The parent media_item ID
  * @param ratingKey - The Plex rating key
  */
+// Pre-prepared statements for watch stats operations (hoisted to avoid
+// creating native Statement objects inside the per-item loop).
+const stmtSelectWatchStats = db.prepare(`
+  SELECT id, total_plays, total_watch_time_seconds
+  FROM watch_stats
+  WHERE media_item_id = ? AND plex_rating_key = ?
+`);
+
+const stmtUpdateWatchStats = db.prepare(`
+  UPDATE watch_stats
+  SET total_plays = ?,
+      total_watch_time_seconds = ?,
+      fetched_at = ?
+  WHERE id = ?
+`);
+
+const stmtInsertWatchStats = db.prepare(`
+  INSERT INTO watch_stats (
+    id, media_item_id, plex_rating_key,
+    total_plays, last_played_at,
+    total_watch_time_seconds, unique_viewers,
+    fetched_at
+  )
+  VALUES (?, ?, ?, ?, NULL, ?, 0, ?)
+`);
+
 async function syncWatchStatsForRatingKey(
   mediaItemId: string,
   ratingKey: string,
@@ -174,11 +200,7 @@ async function syncWatchStatsForRatingKey(
   const totalWatchTimeSeconds = allTimeStat.totalTime;
 
   // Check for existing watch_stats record
-  const existing = db.prepare(`
-    SELECT id, total_plays, total_watch_time_seconds
-    FROM watch_stats
-    WHERE media_item_id = ? AND plex_rating_key = ?
-  `).get(mediaItemId, ratingKey) as ExistingWatchStats | null;
+  const existing = stmtSelectWatchStats.get(mediaItemId, ratingKey) as ExistingWatchStats | null;
 
   const now = new Date().toISOString();
 
@@ -188,13 +210,7 @@ async function syncWatchStatsForRatingKey(
       existing.total_plays !== totalPlays ||
       existing.total_watch_time_seconds !== totalWatchTimeSeconds
     ) {
-      db.prepare(`
-        UPDATE watch_stats
-        SET total_plays = ?,
-            total_watch_time_seconds = ?,
-            fetched_at = ?
-        WHERE id = ?
-      `).run(totalPlays, totalWatchTimeSeconds, now, existing.id);
+      stmtUpdateWatchStats.run(totalPlays, totalWatchTimeSeconds, now, existing.id);
 
       log.debug('Updated watch stats', {
         mediaItemId,
@@ -207,15 +223,7 @@ async function syncWatchStatsForRatingKey(
     // Insert new watch_stats record
     const id = crypto.randomUUID();
 
-    db.prepare(`
-      INSERT INTO watch_stats (
-        id, media_item_id, plex_rating_key,
-        total_plays, last_played_at,
-        total_watch_time_seconds, unique_viewers,
-        fetched_at
-      )
-      VALUES (?, ?, ?, ?, NULL, ?, 0, ?)
-    `).run(id, mediaItemId, ratingKey, totalPlays, totalWatchTimeSeconds, now);
+    stmtInsertWatchStats.run(id, mediaItemId, ratingKey, totalPlays, totalWatchTimeSeconds, now);
 
     log.debug('Inserted new watch stats', {
       mediaItemId,

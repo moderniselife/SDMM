@@ -372,129 +372,163 @@ export async function syncPlexLibrary(): Promise<{
 
     log.info(`Found ${sections.length} Plex library sections`);
 
+    // -----------------------------------------------------------------------
+    // Pre-cache: load existing data into memory ONCE instead of per-item
+    // -----------------------------------------------------------------------
+
+    // 1. Pre-load all existing plex_match rating keys → Set for O(1) "already matched" checks
+    const existingRatingKeys = new Set<string>();
+    {
+      const rows = db.prepare(`
+        SELECT plex_rating_key FROM plex_matches
+      `).all() as { plex_rating_key: string }[];
+
+      for (const row of rows) {
+        existingRatingKeys.add(row.plex_rating_key);
+      }
+      log.info(`Pre-loaded ${existingRatingKeys.size} existing Plex matches`);
+    }
+
+    // 2. Pre-load all media_items into a Map keyed by "normTitle|year|type"
+    //    This replaces the N+1 query that loaded ALL candidates per item
+    interface CandidateRow {
+      id: string;
+      title: string;
+      year: number | null;
+      type: string;
+    }
+
+    const mediaItemsByKey = new Map<string, string>(); // key → media_item.id
+    {
+      const rows = db.prepare(`
+        SELECT id, title, year, type FROM media_items
+      `).all() as CandidateRow[];
+
+      for (const row of rows) {
+        const normTitle = row.title.toLowerCase().trim();
+        // Key with year
+        mediaItemsByKey.set(`${normTitle}|${row.year}|${row.type}`, row.id);
+        // Key without year (fallback)
+        if (!mediaItemsByKey.has(`${normTitle}|null|${row.type}`)) {
+          mediaItemsByKey.set(`${normTitle}|null|${row.type}`, row.id);
+        }
+      }
+      log.info(`Pre-loaded ${rows.length} media items into lookup map`);
+    }
+
+    // 3. Pre-prepare all statements ONCE (not per-item)
+    const stmtInsertMediaItem = db.prepare(`
+      INSERT INTO media_items (id, title, type, year, poster_url, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const stmtUpdatePoster = db.prepare(`
+      UPDATE media_items
+      SET poster_url = COALESCE(poster_url, ?),
+          updated_at = ?
+      WHERE id = ?
+    `);
+
+    const stmtInsertPlexMatch = db.prepare(`
+      INSERT INTO plex_matches (
+        id, media_item_id, plex_rating_key,
+        plex_section_id, plex_title, matched_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    // -----------------------------------------------------------------------
+    // Process sections
+    // -----------------------------------------------------------------------
+
     for (const section of sections) {
       try {
-        // Determine media type from Plex section type
         const mediaType: string =
           section.type === 'movie' ? 'movie' :
           section.type === 'show' ? 'series' :
           'other';
 
-        // Skip non-video sections (e.g. music, photos)
         if (mediaType === 'other') {
           log.debug(`Skipping non-video section: ${section.title} (${section.type})`);
           continue;
         }
 
-        // Fetch all items in this section
-        // NOTE: getSectionItems is expected to be added to PlexClient separately
         const items = await plexClient.getSectionItems(section.key);
-
         log.info(`Processing ${items.length} items from section "${section.title}"`);
 
-        for (const plexItem of items) {
+        // Process in batches with transactions
+        const BATCH_SIZE = 200;
+        for (let i = 0; i < items.length; i += BATCH_SIZE) {
+          const batch = items.slice(i, i + BATCH_SIZE);
+
+          db.exec('BEGIN TRANSACTION');
           try {
-            // Check if we already have a plex_match for this rating key
-            const existingMatch = db.prepare(`
-              SELECT pm.id, pm.media_item_id
-              FROM plex_matches pm
-              WHERE pm.plex_rating_key = ?
-            `).get(plexItem.ratingKey) as { id: string; media_item_id: string } | null;
+            for (const plexItem of batch) {
+              try {
+                // O(1) check: already matched?
+                if (existingRatingKeys.has(plexItem.ratingKey)) {
+                  result.matched++;
+                  continue;
+                }
 
-            if (existingMatch) {
-              result.matched++;
-              continue;
-            }
+                // O(1) lookup: find matching media_item
+                const normTitle = plexItem.title.toLowerCase().trim();
+                let mediaItemId =
+                  mediaItemsByKey.get(`${normTitle}|${plexItem.year ?? null}|${mediaType}`) ??
+                  mediaItemsByKey.get(`${normTitle}|null|${mediaType}`) ??
+                  null;
 
-            // Check if a media_item exists with the same title + year
-            const normTitle = plexItem.title.toLowerCase().trim();
-            interface CandidateRow {
-              id: string;
-              title: string;
-              year: number | null;
-            }
+                const now = new Date().toISOString();
+                const posterUrl = plexItem.thumb
+                  ? buildPlexPosterUrl(plexItem.thumb)
+                  : null;
 
-            const candidates = db.prepare(`
-              SELECT id, title, year FROM media_items
-              WHERE type = ?
-            `).all(mediaType) as CandidateRow[];
+                if (!mediaItemId) {
+                  // Create new media_item
+                  mediaItemId = crypto.randomUUID();
+                  stmtInsertMediaItem.run(
+                    mediaItemId, plexItem.title, mediaType,
+                    plexItem.year ?? null, posterUrl, now, now,
+                  );
+                  // Add to cache so subsequent items can find it
+                  mediaItemsByKey.set(`${normTitle}|${plexItem.year ?? null}|${mediaType}`, mediaItemId);
+                  result.imported++;
+                } else {
+                  result.matched++;
+                  if (posterUrl) {
+                    stmtUpdatePoster.run(posterUrl, now, mediaItemId);
+                  }
+                }
 
-            let mediaItemId: string | null = null;
+                // Insert plex_match
+                const matchId = crypto.randomUUID();
+                stmtInsertPlexMatch.run(
+                  matchId, mediaItemId, plexItem.ratingKey,
+                  parseInt(section.key, 10) || 0, plexItem.title, now,
+                );
 
-            for (const candidate of candidates) {
-              if (
-                candidate.title.toLowerCase().trim() === normTitle &&
-                (candidate.year === (plexItem.year ?? null) || !plexItem.year)
-              ) {
-                mediaItemId = candidate.id;
-                break;
+                // Add to cache so we don't re-process
+                existingRatingKeys.add(plexItem.ratingKey);
+              } catch (itemErr) {
+                result.errors++;
+                log.error('Failed to sync Plex item', {
+                  title: plexItem.title,
+                  ratingKey: plexItem.ratingKey,
+                  error: itemErr instanceof Error ? itemErr.message : String(itemErr),
+                });
               }
             }
-
-            // Create a new media_item if none matched
-            if (!mediaItemId) {
-              mediaItemId = crypto.randomUUID();
-              const now = new Date().toISOString();
-              const posterUrl = plexItem.thumb
-                ? buildPlexPosterUrl(plexItem.thumb)
-                : null;
-
-              db.prepare(`
-                INSERT INTO media_items (id, title, type, year, poster_url, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-              `).run(
-                mediaItemId,
-                plexItem.title,
-                mediaType,
-                plexItem.year ?? null,
-                posterUrl,
-                now,
-                now,
-              );
-
-              result.imported++;
-            } else {
-              result.matched++;
-
-              // Update poster if missing
-              const posterUrl = plexItem.thumb
-                ? buildPlexPosterUrl(plexItem.thumb)
-                : null;
-
-              if (posterUrl) {
-                db.prepare(`
-                  UPDATE media_items
-                  SET poster_url = COALESCE(poster_url, ?),
-                      updated_at = ?
-                  WHERE id = ?
-                `).run(posterUrl, new Date().toISOString(), mediaItemId);
-              }
-            }
-
-            // Insert plex_matches record
-            const matchId = crypto.randomUUID();
-            const now = new Date().toISOString();
-            db.prepare(`
-              INSERT INTO plex_matches (
-                id, media_item_id, plex_rating_key,
-                plex_section_id, plex_title, matched_at
-              )
-              VALUES (?, ?, ?, ?, ?, ?)
-            `).run(
-              matchId,
-              mediaItemId,
-              plexItem.ratingKey,
-              parseInt(section.key, 10) || 0,
-              plexItem.title,
-              now,
-            );
-          } catch (itemErr) {
-            result.errors++;
-            log.error('Failed to sync Plex item', {
-              title: plexItem.title,
-              ratingKey: plexItem.ratingKey,
-              error: itemErr instanceof Error ? itemErr.message : String(itemErr),
+            db.exec('COMMIT');
+          } catch (batchErr) {
+            try { db.exec('ROLLBACK'); } catch { /* already rolled back */ }
+            log.error(`Batch failed for section "${section.title}"`, {
+              error: batchErr instanceof Error ? batchErr.message : String(batchErr),
             });
+          }
+
+          // Yield to event loop between batches
+          if (i + BATCH_SIZE < items.length) {
+            await new Promise(resolve => setTimeout(resolve, 10));
           }
         }
       } catch (sectionErr) {
