@@ -33,7 +33,7 @@ export const mediaRoutes = new Hono();
 
 const mediaQuerySchema = z.object({
   search: z.string().optional(),
-  sourceType: z.enum(['local', 'realdebrid', 'torbox']).optional(),
+  sourceType: z.enum(['local', 'realdebrid', 'torbox', 'cloud']).optional(),
   status: z.enum(['available', 'encoding', 'downloading', 'optimised', 'failed']).optional(),
   minSize: z.coerce.number().optional(),
   maxSize: z.coerce.number().optional(),
