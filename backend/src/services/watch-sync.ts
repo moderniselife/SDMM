@@ -79,21 +79,41 @@ export async function syncWatchStats(): Promise<{ synced: number; errors: number
 
     log.info(`Syncing watch stats for ${plexMatches.length} Plex-matched items`);
 
-    for (const match of plexMatches) {
-      try {
-        await syncWatchStatsForRatingKey(
-          match.media_item_id,
-          match.plex_rating_key,
-        );
-        result.synced++;
-      } catch (err) {
-        result.errors++;
-        log.error('Failed to sync watch stats for item', {
-          mediaItemId: match.media_item_id,
-          ratingKey: match.plex_rating_key,
-          title: match.plex_title,
-          error: err instanceof Error ? err.message : String(err),
-        });
+    // Process in batches to prevent memory accumulation from fetch() calls.
+    // Each fetch() creates Response objects, ArrayBuffers, and parsed JSON.
+    // Without batching + GC, 534 rapid calls grow memory by ~3-4GB.
+    const BATCH_SIZE = 25;
+
+    for (let i = 0; i < plexMatches.length; i += BATCH_SIZE) {
+      const batch = plexMatches.slice(i, i + BATCH_SIZE);
+
+      for (const match of batch) {
+        try {
+          await syncWatchStatsForRatingKey(
+            match.media_item_id,
+            match.plex_rating_key,
+          );
+          result.synced++;
+        } catch (err) {
+          result.errors++;
+          // Only log first 10 errors to avoid log spam
+          if (result.errors <= 10) {
+            log.error('Failed to sync watch stats for item', {
+              mediaItemId: match.media_item_id,
+              ratingKey: match.plex_rating_key,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+      }
+
+      // Force GC and yield between batches — critical for memory control
+      Bun.gc(true);
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Progress logging every 100 items
+      if ((i + BATCH_SIZE) % 100 < BATCH_SIZE) {
+        log.info(`Watch sync progress: ${Math.min(i + BATCH_SIZE, plexMatches.length)}/${plexMatches.length}`);
       }
     }
 
