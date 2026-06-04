@@ -16,6 +16,8 @@ services:
     container_name: schrodrive-media
     restart: unless-stopped
     runtime: nvidia
+    mem_limit: 4g
+    memswap_limit: 4g
     ports:
       - "8686:8686"
     volumes:
@@ -46,6 +48,7 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
       # Plex integration
       - PLEX_URL=http://192.168.1.124:32400
+      - CONFIG_DIR=/config
       - PLEX_TOKEN=${PLEX_TOKEN}
       # Tautulli integration
       - TAUTULLI_URL=http://192.168.1.124:8181

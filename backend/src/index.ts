@@ -25,6 +25,28 @@ import { syncPlexLibrary } from './services/metadata';
 const VERSION = '0.1.0';
 const startTime = Date.now();
 
+/**
+ * Logs current memory usage and forces garbage collection.
+ * Used to track memory growth in production and identify leaks.
+ */
+function logMemory(label: string): void {
+  // Force GC before measuring to get accurate "live" memory
+  Bun.gc(true);
+  const rss = process.memoryUsage.rss();
+  const heap = process.memoryUsage();
+  logger.info(`[MEMORY] ${label}`, {
+    rss: `${Math.round(rss / 1024 / 1024)}MB`,
+    heapUsed: `${Math.round(heap.heapUsed / 1024 / 1024)}MB`,
+    heapTotal: `${Math.round(heap.heapTotal / 1024 / 1024)}MB`,
+    external: `${Math.round(heap.external / 1024 / 1024)}MB`,
+  });
+}
+
+// Periodic memory logging — every 60s
+setInterval(() => {
+  logMemory('periodic');
+}, 60_000);
+
 // =============================================================================
 // Startup Banner
 // =============================================================================
@@ -71,6 +93,7 @@ const server = Bun.serve({
 });
 
 const startupMs = Date.now() - startTime;
+logMemory('after-server-start');
 logger.info(`Server listening on http://${host}:${port} (started in ${startupMs}ms)`);
 logger.info(`API routes available at http://${host}:${port}/api/`);
 
@@ -121,6 +144,7 @@ setTimeout(() => {
   syncPlexLibrary()
     .then((plexResult) => {
       logger.info(`Plex library sync complete: ${plexResult.imported} imported, ${plexResult.matched} matched`);
+      logMemory('after-plex-sync');
     })
     .catch((err) => {
       logger.warn('Plex library sync failed (will retry on next schedule)', {
@@ -132,6 +156,7 @@ setTimeout(() => {
 // Defer watch stats sync even further — requires Plex matches to exist
 setTimeout(() => {
   startPeriodicWatchSync(30);
+  logMemory('after-watch-sync-start');
   logger.info('Periodic watch stats sync started (every 30 minutes)');
 }, 90_000); // 90s — after Plex sync has had time to create matches
 

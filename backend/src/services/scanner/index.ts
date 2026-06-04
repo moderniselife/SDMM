@@ -23,6 +23,17 @@ import type { ScanResult } from './types';
 
 const log = createLogger('scanner');
 
+/** Log memory usage at key points to identify leaks. */
+function logScannerMemory(label: string): void {
+  Bun.gc(true);
+  const rss = process.memoryUsage.rss();
+  const heap = process.memoryUsage();
+  log.info(`[MEMORY] ${label}`, {
+    rss: `${Math.round(rss / 1024 / 1024)}MB`,
+    heapUsed: `${Math.round(heap.heapUsed / 1024 / 1024)}MB`,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Scan Lock
 // ---------------------------------------------------------------------------
@@ -80,6 +91,7 @@ export async function scanAll(): Promise<ScanResult[]> {
 
     // Yield to event loop + give GC a chance
     await new Promise(resolve => setTimeout(resolve, 50));
+    logScannerMemory('after-local-scan');
 
     // 2. RealDebrid scan → reconcile → release files
     {
@@ -98,6 +110,7 @@ export async function scanAll(): Promise<ScanResult[]> {
     }
 
     await new Promise(resolve => setTimeout(resolve, 50));
+    logScannerMemory('after-rd-scan');
 
     // 3. TorBox scan → reconcile → release files
     {

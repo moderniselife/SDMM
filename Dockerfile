@@ -98,4 +98,4 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["bun", "run", "backend/src/index.ts"]
+CMD ["bun", "run", "--smol", "backend/src/index.ts"]
