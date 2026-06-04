@@ -99,6 +99,7 @@ export function MediaDetail() {
     sourceId?: string;
     action?: string;
   }>({ open: false, title: '', desc: '', variant: 'default' });
+  const [encodingAll, setEncodingAll] = useState(false);
 
   const handleAction = (action: string, source: MediaSource) => {
     const labels: Record<string, string> = {
@@ -212,9 +213,32 @@ export function MediaDetail() {
               <Play className="mr-1.5 h-4 w-4" />
               Play in Plex
             </Button>
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              disabled={encodingAll}
+              onClick={async () => {
+                const cloudSources = media.sources.filter(
+                  (s) => s.sourceType === 'realdebrid' || s.sourceType === 'torbox',
+                );
+                if (cloudSources.length === 0) return;
+
+                setEncodingAll(true);
+                let success = 0;
+                let failed = 0;
+                for (const source of cloudSources) {
+                  try {
+                    await encodeToLocal(source.id);
+                    success++;
+                  } catch {
+                    failed++;
+                  }
+                }
+                setEncodingAll(false);
+                console.log(`Bulk encode: ${success} queued, ${failed} failed out of ${cloudSources.length}`);
+              }}
+            >
               <Zap className="mr-1.5 h-4 w-4" />
-              Encode
+              {encodingAll ? `Queueing...` : `Encode All (${media.sources.filter((s) => s.sourceType === 'realdebrid' || s.sourceType === 'torbox').length})`}
             </Button>
           </div>
         </div>

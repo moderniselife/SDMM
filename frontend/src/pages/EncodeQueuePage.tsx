@@ -1,7 +1,8 @@
 /**
  * EncodeQueuePage — Table of encode jobs with status, progress, and actions.
+ * Connects to SSE for live progress updates.
  */
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Cpu, CheckCircle2, XCircle, Clock, Loader2, RotateCcw, X, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,8 +42,64 @@ function QueueSkeleton() {
 
 export function EncodeQueuePage() {
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  /** Live progress overrides from SSE — keyed by jobId. */
+  const [liveProgress, setLiveProgress] = useState<Record<string, number>>({});
 
   const { data: jobs, loading, error, refetch } = useApi(fetchEncodeQueue);
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+
+  // SSE connection for live progress updates
+  useEffect(() => {
+    const baseUrl = import.meta.env.VITE_API_URL ?? '';
+    const url = `${baseUrl}/api/events`;
+    const es = new EventSource(url);
+
+    es.addEventListener('encode_progress', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.jobId && typeof data.percent === 'number') {
+          // Update progress for running encode
+          setLiveProgress((prev) => ({ ...prev, [data.jobId]: data.percent }));
+        }
+        // On completion, refetch the whole queue to get final status
+        if (data._eventType === 'encode:complete') {
+          setLiveProgress((prev) => {
+            const next = { ...prev };
+            delete next[data.jobId];
+            return next;
+          });
+          setTimeout(() => refetchRef.current(), 500);
+        }
+      } catch { /* ignore parse errors */ }
+    });
+
+    es.addEventListener('import_progress', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.jobId && typeof data.percent === 'number') {
+          setLiveProgress((prev) => ({ ...prev, [data.jobId]: data.percent }));
+        }
+        if (data._eventType === 'import:complete') {
+          setLiveProgress((prev) => {
+            const next = { ...prev };
+            delete next[data.jobId];
+            return next;
+          });
+          setTimeout(() => refetchRef.current(), 500);
+        }
+      } catch { /* ignore */ }
+    });
+
+    // Clean up on unmount
+    return () => es.close();
+  }, []);
+
+  // Also poll every 15s as fallback
+  useEffect(() => {
+    const interval = setInterval(() => refetchRef.current(), 15_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const jobList = jobs ?? [];
   const sortedJobs = [...jobList].sort(
@@ -146,21 +203,27 @@ export function EncodeQueuePage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {job.status === 'RUNNING' ? (
-                          <div className="space-y-1">
-                            <Progress value={job.progress} className="h-1.5" />
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>{job.progress.toFixed(1)}%</span>
-                              {job.speed && <span>{job.speed}</span>}
-                            </div>
-                          </div>
-                        ) : job.status === 'COMPLETED' ? (
-                          <span className="text-xs text-emerald-400">100% — Complete</span>
-                        ) : job.status === 'FAILED' ? (
-                          <span className="truncate text-xs text-red-400">{job.errorMessage}</span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Waiting…</span>
-                        )}
+                        {(() => {
+                          const progress = liveProgress[job.id] ?? job.progress;
+                          if (job.status === 'RUNNING' || liveProgress[job.id] !== undefined) {
+                            return (
+                              <div className="space-y-1">
+                                <Progress value={progress} className="h-1.5" />
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>{progress.toFixed(1)}%</span>
+                                  {job.speed && <span>{job.speed}</span>}
+                                </div>
+                              </div>
+                            );
+                          }
+                          if (job.status === 'COMPLETED') {
+                            return <span className="text-xs text-emerald-400">100% — Complete</span>;
+                          }
+                          if (job.status === 'FAILED') {
+                            return <span className="truncate text-xs text-red-400">{job.errorMessage}</span>;
+                          }
+                          return <span className="text-xs text-muted-foreground">Waiting…</span>;
+                        })()}
                       </TableCell>
                       <TableCell className="text-right text-xs text-muted-foreground">
                         {job.eta ? formatDuration(job.eta) : '—'}

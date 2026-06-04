@@ -21,6 +21,9 @@ import { startImportWorker, stopImportWorker } from './services/queue/import-wor
 import { getEncodeWorkerDeps, getDownloadWorkerDeps, getImportWorkerDeps } from './services/worker-wiring';
 import { startPeriodicWatchSync, stopPeriodicWatchSync } from './services/watch-sync';
 import { syncPlexLibrary } from './services/metadata';
+import { eventBus } from './services/events';
+import { broadcastSSE } from './routes/sse';
+import type { SSEEventType } from './routes/sse';
 
 const VERSION = '0.1.0';
 const startTime = Date.now();
@@ -161,6 +164,33 @@ setTimeout(() => {
 }, 90_000); // 90s — after Plex sync has had time to create matches
 
 logger.info('All background services scheduled');
+
+// =============================================================================
+// EventBus → SSE Bridge
+// =============================================================================
+// The internal EventBus uses colon-separated types (encode:progress),
+// but the SSE route uses underscore-separated types (encode_progress).
+// Register a wildcard listener to forward all events to connected clients.
+
+const eventTypeMap: Record<string, SSEEventType> = {
+  'encode:progress': 'encode_progress',
+  'encode:complete': 'encode_progress',
+  'download:progress': 'download_progress',
+  'download:complete': 'download_progress',
+  'import:progress': 'import_progress',
+  'import:complete': 'import_progress',
+  'scan:complete': 'scan_complete',
+  'job:complete': 'system_notification',
+};
+
+eventBus.on('*', (event) => {
+  const sseType = eventTypeMap[event.type];
+  if (sseType) {
+    broadcastSSE(sseType, { ...event.data, _eventType: event.type });
+  }
+});
+
+logger.info('EventBus → SSE bridge active');
 
 // =============================================================================
 // Graceful Shutdown
