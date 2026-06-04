@@ -367,7 +367,8 @@ plexRoutes.post('/plex/preserve/:ratingKey', async (c) => {
  */
 plexRoutes.get('/plex/proxy/*', async (c) => {
   try {
-    const proxyPath = c.req.path.replace(/^\/plex\/proxy/, '');
+    // c.req.path includes the /api mount prefix, so strip the full prefix
+    const proxyPath = c.req.path.replace(/^\/api\/plex\/proxy/, '');
     if (!proxyPath || proxyPath === '/') {
       return c.text('Missing path', 400);
     }
