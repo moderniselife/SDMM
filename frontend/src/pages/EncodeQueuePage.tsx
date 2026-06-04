@@ -2,7 +2,7 @@
  * EncodeQueuePage — Table of encode jobs with status, progress, and actions.
  * Connects to SSE for live progress updates.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Cpu, CheckCircle2, XCircle, Clock, Loader2, RotateCcw, X, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
