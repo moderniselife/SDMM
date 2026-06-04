@@ -51,12 +51,22 @@ let updateDownloadStatus: UpdateDownloadStatusFn = async () => {};
 // Poll Logic
 // ---------------------------------------------------------------------------
 
+let consecutiveErrors = 0;
+const MAX_BACKOFF_MS = 300_000; // 5 minutes max between retries
+
 /**
  * Polls qBittorrent for current torrent status and processes updates.
  */
 async function pollDownloads(): Promise<void> {
   try {
     const torrents = await qbittorrentClient.getTorrents();
+
+    // Reset backoff on success
+    if (consecutiveErrors > 0) {
+      console.log('[DownloadWorker] Connection restored — resuming normal polling');
+      consecutiveErrors = 0;
+      restartPollTimer(pollIntervalMs);
+    }
 
     for (const torrent of torrents) {
       const progressPercent = Math.round(torrent.progress * 100);
@@ -92,10 +102,34 @@ async function pollDownloads(): Promise<void> {
       }
     }
   } catch (err) {
-    console.error(
-      `[DownloadWorker] Poll error: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    consecutiveErrors++;
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const isAuthError = errMsg.includes('invalid credentials') || errMsg.includes('login failed');
+
+    if (isAuthError) {
+      // Exponential backoff for auth failures — don't spam logs
+      const backoffMs = Math.min(pollIntervalMs * Math.pow(2, consecutiveErrors), MAX_BACKOFF_MS);
+      if (consecutiveErrors === 1 || consecutiveErrors % 10 === 0) {
+        console.warn(
+          `[DownloadWorker] qBittorrent auth failed (attempt ${consecutiveErrors}) — backing off to ${Math.round(backoffMs / 1000)}s`,
+        );
+      }
+      restartPollTimer(backoffMs);
+    } else if (consecutiveErrors <= 3) {
+      // Only log non-auth errors a few times
+      console.error(`[DownloadWorker] Poll error: ${errMsg}`);
+    }
   }
+}
+
+/** Restarts the poll timer with a new interval. */
+function restartPollTimer(intervalMs: number): void {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+  }
+  pollTimer = setInterval(() => {
+    pollDownloads().catch(console.error);
+  }, intervalMs);
 }
 
 // ---------------------------------------------------------------------------

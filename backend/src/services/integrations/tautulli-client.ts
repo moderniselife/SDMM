@@ -139,27 +139,39 @@ export class TautulliClient {
   ): Promise<TautulliTopMedia[]> {
     const statId = type === 'movie' ? 'top_movies' : 'top_tv';
 
-    interface HomeStatsData {
-      rows: Array<{
-        rating_key: string;
-        title: string;
-        total_plays: number;
-        total_duration: number;
-        users_watching: number;
-      }>;
+    interface HomeStatsRow {
+      rating_key: string;
+      title: string;
+      total_plays: number;
+      total_duration: number;
+      users_watching: number;
     }
 
-    const data = await this.request<HomeStatsData[]>('get_home_stats', {
+    interface HomeStatsGroup {
+      rows: HomeStatsRow[];
+    }
+
+    // Tautulli's response format varies:
+    // - With stat_id: returns a single object { rows: [...] } or an array with one group
+    // - Without stat_id: returns an array of stat groups
+    const raw = await this.request<HomeStatsGroup | HomeStatsGroup[]>('get_home_stats', {
       stat_id: statId,
       stats_count: String(count),
       time_range: String(days),
     });
 
-    // Tautulli returns an array of stat groups; find the matching one
-    const statGroup = data.find((g) => Array.isArray(g.rows));
-    if (!statGroup) return [];
+    let rows: HomeStatsRow[] = [];
 
-    return statGroup.rows.map((row) => ({
+    if (Array.isArray(raw)) {
+      // Array of stat groups — find the one with rows
+      const statGroup = raw.find((g) => Array.isArray(g?.rows));
+      rows = statGroup?.rows ?? [];
+    } else if (raw && typeof raw === 'object' && Array.isArray(raw.rows)) {
+      // Single stat group object
+      rows = raw.rows;
+    }
+
+    return rows.map((row) => ({
       ratingKey: String(row.rating_key),
       title: row.title,
       totalPlays: row.total_plays,
