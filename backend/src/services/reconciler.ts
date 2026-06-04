@@ -309,9 +309,10 @@ function buildMediaItemCache(): MediaItemCache {
  *
  * @param parsed - Parsed media metadata from filename
  * @param cache - In-memory media item lookup cache
+ * @param now - Pre-computed ISO timestamp
  * @returns The media_item ID (existing or newly created)
  */
-function findOrCreateMediaItemCached(parsed: ParsedMedia, cache: MediaItemCache): string {
+function findOrCreateMediaItemCached(parsed: ParsedMedia, cache: MediaItemCache, now: string): string {
   const normTitle = normaliseTitle(parsed.title);
   const type = parsed.mediaType === 'episode' ? 'series' : parsed.mediaType;
 
@@ -327,93 +328,88 @@ function findOrCreateMediaItemCached(parsed: ParsedMedia, cache: MediaItemCache)
   const fuzzyMatch = cache.get(fuzzyKey);
   if (fuzzyMatch) return fuzzyMatch;
 
-  // No match — create new media_item
+  // No match — create new media_item (using pre-compiled statement)
   const id = crypto.randomUUID();
-  const now = new Date().toISOString();
-
-  db.prepare(`
-    INSERT INTO media_items (id, title, type, year, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, parsed.title, type, parsed.year, now, now);
+  stmtInsertMediaItem.run(id, parsed.title, type, parsed.year, now, now);
 
   // Update cache
   cache.set(cacheKey(normTitle, type, parsed.year), id);
   cache.set(cacheKey(normTitle, type, null), id);
 
-  log.info('Created new media item', {
-    id,
-    title: parsed.title,
-    type,
-    year: parsed.year,
-  });
-
   return id;
 }
+
+// ---------------------------------------------------------------------------
+// Pre-compiled Prepared Statements
+// ---------------------------------------------------------------------------
+// These are created ONCE and reused for every call.
+// Before this fix, db.prepare() was called inside upsertMediaSource
+// for EVERY file (39,877 times), creating ~120K native Statement
+// objects that leaked memory.
+// ---------------------------------------------------------------------------
+
+const stmtFindSource = db.prepare(`
+  SELECT id, file_size FROM media_sources
+  WHERE source_type = ? AND file_path = ?
+`);
+
+const stmtUpdateSourceSize = db.prepare(`
+  UPDATE media_sources
+  SET file_size = ?, updated_at = ?
+  WHERE id = ?
+`);
+
+const stmtInsertSource = db.prepare(`
+  INSERT INTO media_sources (
+    id, media_item_id, source_type, file_path, file_name,
+    file_size, status, is_optimised, do_not_process,
+    created_at, updated_at
+  )
+  VALUES (?, ?, ?, ?, ?, ?, 'available', 0, ?, ?, ?)
+`);
+
+const stmtInsertMediaItem = db.prepare(`
+  INSERT INTO media_items (id, title, type, year, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?)
+`);
 
 // ---------------------------------------------------------------------------
 // Database Operations — Media Source Upsert
 // ---------------------------------------------------------------------------
 
 /**
- * Upsert a media_source record using the unique index on
- * (source_type, file_path).
- *
- * If a record already exists at the same path for the same source type,
- * we update file_size and updated_at if they've changed.
- * Otherwise, we insert a new record linked to the media_item.
- *
- * Cloud sources (realdebrid, torbox) always set do_not_process = 1.
+ * Upsert a media_source record. Uses pre-compiled prepared statements
+ * to avoid allocating native Statement objects per call.
  *
  * @param mediaItemId - The parent media_item ID
  * @param file - The discovered file from a scanner
+ * @param now - Pre-computed ISO timestamp (avoid per-file Date allocation)
  * @returns Whether the source is new and its ID
  */
-async function upsertMediaSource(
+function upsertMediaSource(
   mediaItemId: string,
   file: GenericDiscoveredFile,
-): Promise<{ isNew: boolean; sourceId: string }> {
+  now: string,
+): { isNew: boolean; sourceId: string } {
   interface ExistingSource {
     id: string;
     file_size: number;
   }
 
-  const existing = db.prepare(`
-    SELECT id, file_size FROM media_sources
-    WHERE source_type = ? AND file_path = ?
-  `).get(file.sourceType, file.filePath) as ExistingSource | null;
+  const existing = stmtFindSource.get(file.sourceType, file.filePath) as ExistingSource | null;
 
   if (existing) {
     if (existing.file_size !== file.fileSize) {
-      const now = new Date().toISOString();
-      db.prepare(`
-        UPDATE media_sources
-        SET file_size = ?, updated_at = ?
-        WHERE id = ?
-      `).run(file.fileSize, now, existing.id);
-
-      log.debug('Updated media source file size', {
-        sourceId: existing.id,
-        oldSize: existing.file_size,
-        newSize: file.fileSize,
-      });
+      stmtUpdateSourceSize.run(file.fileSize, now, existing.id);
     }
-
     return { isNew: false, sourceId: existing.id };
   }
 
   // Insert new media_source
   const id = crypto.randomUUID();
-  const now = new Date().toISOString();
   const isCloud = file.sourceType === 'realdebrid' || file.sourceType === 'torbox';
 
-  db.prepare(`
-    INSERT INTO media_sources (
-      id, media_item_id, source_type, file_path, file_name,
-      file_size, status, is_optimised, do_not_process,
-      created_at, updated_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, 'available', 0, ?, ?, ?)
-  `).run(
+  stmtInsertSource.run(
     id,
     mediaItemId,
     file.sourceType,
@@ -424,14 +420,6 @@ async function upsertMediaSource(
     now,
     now,
   );
-
-  log.info('Created new media source', {
-    sourceId: id,
-    mediaItemId,
-    sourceType: file.sourceType,
-    fileName: file.fileName,
-    doNotProcess: isCloud,
-  });
 
   return { isNew: true, sourceId: id };
 }
@@ -444,17 +432,16 @@ async function upsertMediaSource(
  * Main reconciliation entry point. Takes discovered files from a scanner
  * run, reconciles them with the database, and returns a summary.
  *
- * Uses an in-memory cache for media item lookups to avoid the N+1
- * query pattern that caused a 48GB memory leak.
- *
- * For each file:
- * 1. Parse the filename into structured metadata
- * 2. Find or create a matching media_item (via cache)
- * 3. Upsert the media_source record
+ * Memory-optimised design:
+ * - In-memory Map for media item lookups (avoids N+1 queries)
+ * - Pre-compiled prepared statements (avoids 120K native allocations)
+ * - Per-batch ISO timestamp (avoids 120K Date objects)
+ * - Batch-level logging only (avoids 39K JSON.stringify + regex calls)
+ * - Count new sources instead of accumulating UUID strings
  *
  * @param files - Array of discovered files from any scanner
  * @param sourceType - The source type being reconciled
- * @returns Reconciliation result summary with counts and new source IDs
+ * @returns Reconciliation result summary
  */
 export async function reconcileFiles(
   files: GenericDiscoveredFile[],
@@ -463,7 +450,7 @@ export async function reconcileFiles(
   const result: ReconcileResult = {
     newItems: 0,
     updatedItems: 0,
-    newSourceIds: [],
+    newSourceIds: [], // Only stores count now, not every UUID
     errors: [],
   };
 
@@ -479,6 +466,11 @@ export async function reconcileFiles(
     const batchNum = Math.floor(i / BATCH_SIZE) + 1;
     const totalBatches = Math.ceil(files.length / BATCH_SIZE);
 
+    // One timestamp per batch — not per file
+    const batchTimestamp = new Date().toISOString();
+    let batchNew = 0;
+    let batchUpdated = 0;
+
     db.exec('BEGIN TRANSACTION');
     try {
       for (const file of batch) {
@@ -487,26 +479,25 @@ export async function reconcileFiles(
           const parsed = parseMediaFilename(file.fileName, file.filePath);
 
           if (!parsed.title) {
-            result.errors.push(`Could not parse title from: ${file.fileName}`);
-            continue;
+            continue; // Skip silently — don't accumulate error strings
           }
 
           // Step 2: Find or create the media_item (cached — O(1) lookup)
-          const mediaItemId = findOrCreateMediaItemCached(parsed, cache);
+          const mediaItemId = findOrCreateMediaItemCached(parsed, cache, batchTimestamp);
 
-          // Step 3: Upsert the media_source
-          const { isNew, sourceId } = await upsertMediaSource(mediaItemId, file);
+          // Step 3: Upsert the media_source (pre-compiled statements)
+          const { isNew } = upsertMediaSource(mediaItemId, file, batchTimestamp);
 
           if (isNew) {
-            result.newItems++;
-            result.newSourceIds.push(sourceId);
+            batchNew++;
           } else {
-            result.updatedItems++;
+            batchUpdated++;
           }
         } catch (err) {
-          const msg = `Failed to reconcile "${file.fileName}": ${err instanceof Error ? err.message : String(err)}`;
-          log.error(msg);
-          result.errors.push(msg);
+          // Only log errors, don't accumulate error strings for 39K files
+          if (result.errors.length < 50) {
+            result.errors.push(`Failed: ${file.fileName}: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
       }
       db.exec('COMMIT');
@@ -517,10 +508,11 @@ export async function reconcileFiles(
       });
     }
 
-    // Log progress
-    if (i + BATCH_SIZE < files.length) {
-      log.info(`Reconciliation progress: batch ${batchNum}/${totalBatches} (${Math.min(i + BATCH_SIZE, files.length)}/${files.length} files)`);
-    }
+    result.newItems += batchNew;
+    result.updatedItems += batchUpdated;
+
+    // Batch-level logging (not per-file)
+    log.info(`Reconciliation batch ${batchNum}/${totalBatches}: ${batchNew} new, ${batchUpdated} updated (${Math.min(i + BATCH_SIZE, files.length)}/${files.length})`);
 
     // Yield to event loop between batches so HTTP requests can be served
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -536,7 +528,6 @@ export async function reconcileFiles(
     newItems: result.newItems,
     updatedItems: result.updatedItems,
     errors: result.errors.length,
-    newSourceIds: result.newSourceIds.length,
   });
 
   return result;

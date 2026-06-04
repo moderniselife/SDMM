@@ -51,7 +51,7 @@ export async function scanAll(): Promise<ScanResult[]> {
 
   scanInProgress = true;
   const results: ScanResult[] = [];
-  const allNewMediaItemIds: string[] = [];
+  let totalNewItems = 0;
 
   try {
     log.info('Starting full scan of all sources...');
@@ -67,10 +67,7 @@ export async function scanAll(): Promise<ScanResult[]> {
       localScan.result.filesNew = localReconcile.newItems;
       localScan.result.filesUpdated = localReconcile.updatedItems;
 
-      // Collect new source IDs to look up their media_item IDs for enrichment
-      if (localReconcile.newSourceIds.length > 0) {
-        allNewMediaItemIds.push(...localReconcile.newSourceIds);
-      }
+      totalNewItems += localReconcile.newItems;
     }
 
     // 2. RealDebrid scan → reconcile (read-only, do_not_process)
@@ -84,9 +81,7 @@ export async function scanAll(): Promise<ScanResult[]> {
       rdScan.result.filesNew = rdReconcile.newItems;
       rdScan.result.filesUpdated = rdReconcile.updatedItems;
 
-      if (rdReconcile.newSourceIds.length > 0) {
-        allNewMediaItemIds.push(...rdReconcile.newSourceIds);
-      }
+      totalNewItems += rdReconcile.newItems;
     }
 
     // 3. TorBox scan → reconcile (read-only, do_not_process)
@@ -100,9 +95,7 @@ export async function scanAll(): Promise<ScanResult[]> {
       torboxScan.result.filesNew = torboxReconcile.newItems;
       torboxScan.result.filesUpdated = torboxReconcile.updatedItems;
 
-      if (torboxReconcile.newSourceIds.length > 0) {
-        allNewMediaItemIds.push(...torboxReconcile.newSourceIds);
-      }
+      totalNewItems += torboxReconcile.newItems;
     }
 
     const totalFiles = results.reduce((sum, r) => sum + r.filesFound, 0);
@@ -115,8 +108,8 @@ export async function scanAll(): Promise<ScanResult[]> {
     // 4. Background metadata enrichment for new items (deferred, non-blocking)
     //    Scheduled with a small delay so the scan result is returned first
     //    and the event loop isn't blocked by enrichment API calls.
-    if (allNewMediaItemIds.length > 0) {
-      log.info(`Scheduling background metadata enrichment for ${allNewMediaItemIds.length} new source(s) (5s delay)...`);
+    if (totalNewItems > 0) {
+      log.info(`Scheduling background metadata enrichment for ${totalNewItems} new item(s) (5s delay)...`);
       setTimeout(async () => {
         try {
           const enrichResult = await enrichMetadata();
