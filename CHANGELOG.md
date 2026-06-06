@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **SchroDrive Upgrades (v0.5.0 - v0.5.2)**:
+  - **Multi-token Download Rotation**: Added provider-agnostic token rotation (inspired by Zurg's `download_tokens`) for RealDebrid, TorBox, AllDebrid, and Premiumize to rotate download tokens on HTTP 503 bandwidth limit errors.
+  - **Unified Media Server Stream Detection**: Pauses background loops (Overseerr poller, watchlist poll, dead scanner, and organiser) during active streams on Plex, Jellyfin, and Emby.
+  - **FUSE Mount Self-Healing & Port Probing**: Automatically detects stale/busy mounts, unmounts them, and scans/probes up to 20 sequential ports if a WebDAV bridge port is blocked (`EADDRINUSE`).
+  - **RealDebrid Repair Robustness**: Added propagation delays and automatic 404 retry loops to select all files when re-adding magnets.
+  - **Dynamic Organiser Scanning**: Configures the media organiser to dynamically scan all enabled providers from `config.providers`.
+  - **Docker Compose & FAQ Updates**: Upgraded compose settings with optimized VFS caching parameters and added clear troubleshooting instructions for FUSE mount locks and zombie processes.
+
 
 - **SchroDrive migration** — replaced PD Zurg + TorBox Media Center with unified SchroDrive:
   - Docker config: FUSE mounts, dual provider (RD+TB), dead scanner, backwards-compatible Plex paths
