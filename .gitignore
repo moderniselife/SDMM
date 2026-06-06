@@ -40,3 +40,6 @@ logs/
 # Coverage
 coverage/
 deprecated-services-backup.yml
+
+# moderniselife implementation of pd_zurg 
+pd_zurg
