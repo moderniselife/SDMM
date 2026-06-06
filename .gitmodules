@@ -1,3 +1,4 @@
 [submodule "SchroDrive"]
 	path = SchroDrive
 	url = git@github.com:moderniselife/SchroDrive.git
+	ignore = untracked

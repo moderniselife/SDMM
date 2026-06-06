@@ -12,6 +12,7 @@ build/
 .env.local
 .env.*.local
 .env.plex
+config.json
 
 # Database
 *.db
@@ -43,3 +44,8 @@ deprecated-services-backup.yml
 
 # moderniselife implementation of pd_zurg 
 pd_zurg
+
+# Deploy scripts and custom compose files
+deploy.sh
+deploy-schrodrive.sh
+plex-compose.yml
