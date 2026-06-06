@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Repository Cleanup**: Untracked and ignored custom deployment scripts (`deploy.sh`, `deploy-schrodrive.sh`) and environment configuration (`plex-compose.yml`) to keep local customizations private, and completely purged them from git history. Added `config.json` to `.gitignore` and configured `.gitmodules` with `ignore = untracked` for the `SchroDrive` submodule to maintain a clean git status.
+
 ### Added
 - **SchroDrive Upgrades (v0.5.0 - v0.5.3)**:
   - **Multi-token Download Rotation**: Added provider-agnostic token rotation (inspired by Zurg's `download_tokens`) for RealDebrid, TorBox, AllDebrid, and Premiumize to rotate download tokens on HTTP 503 bandwidth limit errors.
