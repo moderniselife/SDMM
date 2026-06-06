@@ -53,7 +53,7 @@ graph TD
     tautulli -->|Popularity Suggestions| sdmm["SchroDrive Media Manager"]
     sdmm -->|Triggers Download| qbit["qBittorrent"]
     qbit -->|Downloads Cloud Files| sdmm
-    sdmm -->|Auto-Encodes (NVENC/x265)| sdmm
+    sdmm -->|"Auto-Encodes (NVENC/x265)"| sdmm
     sdmm -->|Moves to Local Storage| local["Local Media Library"]
     local -->|Triggers Refresh| ms
 ```
