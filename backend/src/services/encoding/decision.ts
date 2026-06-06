@@ -18,8 +18,7 @@ import { TARGET_BITRATE_BPS } from './types';
 
 /** Paths that must NEVER be auto-encoded. */
 const NEVER_ENCODE_PATH_PREFIXES = [
-  '/cloud/realdebrid',
-  '/cloud/torbox',
+  '/cloud/',
   '/pd_zurg/mnt/pd_zurg',
 ];
 

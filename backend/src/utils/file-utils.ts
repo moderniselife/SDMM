@@ -158,8 +158,7 @@ export async function safeCopy(
  */
 export function isCloudPath(path: string): boolean {
   return (
-    path.startsWith('/cloud/realdebrid') ||
-    path.startsWith('/cloud/torbox') ||
+    path.startsWith('/cloud/') ||
     path.startsWith('/pd_zurg/') ||
     path.includes('/torbox/')
   );
