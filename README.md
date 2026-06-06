@@ -1,5 +1,8 @@
 # SchroDrive Media Manager
 
+> [!WARNING]
+> This project is a very early Work In Progress (WIP). Only the bare basics work right now.
+
 > Docker-compatible local media manager for Plex stacks. Manage, encode, and preserve your media library with full control over local and cloud storage.
 
 ![License](https://img.shields.io/badge/licence-MIT-blue)
