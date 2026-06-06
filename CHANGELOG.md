@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **SchroDrive migration** — replaced PD Zurg + TorBox Media Center with unified SchroDrive:
+  - Docker config: FUSE mounts, dual provider (RD+TB), dead scanner, backwards-compatible Plex paths
+  - Plex/Jellyfin/Emby watchlist integration with unified poller
+  - Dynamic per-endpoint rate limit learning (persisted to JSON)
+  - Infringing content blocklist (JSON-backed, UI-ready)
+  - Full code documentation overhaul (6 core files)
+  - Runtime migrated from Node.js to Bun (latest)
+  - SchroDrive version bumped to 0.2.0
 - **Plex Library page**: Browse Plex library by section (Movies/TV Shows), navigate show → season → episodes with poster art
 - **Plex poster proxy**: `/api/plex/proxy/*` endpoint proxies Plex images server-side (token never exposed to client)
 - **Plex preservation**: One-click "Preserve All" to queue entire shows/seasons for cloud → local copy
