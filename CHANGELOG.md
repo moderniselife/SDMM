@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed Mermaid syntax rendering error in `README.md` diagram by quoting the edge label containing parentheses.
+- Fixed container restart loop and FUSE lockups by unmounting FUSE paths unconditionally on startup (Phase 0) to free up bound ports (e.g. 9115), and introducing a 3-second delay on shutdown and auto-update exits to allow the `rclone` daemon to finish unmounting before the WebDAV bridges close.
 
 ### Added
 - **SchroDrive Upgrades (v0.5.0 - v0.5.3)**:
