@@ -25,15 +25,15 @@ services:
       - /home/joseph/schrodrive-media/config:/config
       # Local media storage (read-write)
       - /mnt/media:/media
-      # Cloud mounts (READ-ONLY — managed externally by zurg/rclone)
+      # Cloud mounts (READ-ONLY — managed by SchroDrive FUSE mounts)
       - type: bind
-        source: /pd_zurg/mnt/pd_zurg
+        source: /home/joseph/schrodrive/realdebrid
         target: /cloud/realdebrid
         read_only: true
         bind:
           create_host_path: false
       - type: bind
-        source: /home/joseph/torbox
+        source: /home/joseph/schrodrive/torbox
         target: /cloud/torbox
         read_only: true
         bind:

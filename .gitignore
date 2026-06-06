@@ -39,3 +39,4 @@ logs/
 
 # Coverage
 coverage/
+deprecated-services-backup.yml
