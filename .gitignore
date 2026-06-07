@@ -49,3 +49,5 @@ pd_zurg
 deploy.sh
 deploy-schrodrive.sh
 plex-compose.yml
+zurg-testing
+zurg-serverless
