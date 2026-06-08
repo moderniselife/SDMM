@@ -56,7 +56,14 @@ LOCAL_CLOUD_LINKS_FILE="$MAIN_REPO_DIR/cloud_links.json"
 GHCR_IMAGE="ghcr.io/moderniselife/schrodrive"
 DEFAULT_TAG="latest"
 
-# Discord Webhook (set via DISCORD_DEPLOY_WEBHOOK env var)
+# Load secrets from .env.plex (gitignored)
+if [ -f "$MAIN_REPO_DIR/.env.plex" ]; then
+    set -a
+    source "$MAIN_REPO_DIR/.env.plex"
+    set +a
+fi
+
+# Discord Webhook (loaded from .env.plex → DISCORD_DEPLOY_WEBHOOK)
 DISCORD_WEBHOOK="${DISCORD_DEPLOY_WEBHOOK:-}"
 
 # SchroDrive API port
