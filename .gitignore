@@ -51,3 +51,4 @@ deploy-schrodrive.sh
 plex-compose.yml
 zurg-testing
 zurg-serverless
+cloud_links.json
