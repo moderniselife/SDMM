@@ -35,9 +35,9 @@ const projectSummaries = [
     name: 'SchröDrive',
     gradient: true,
     summary:
-      'All-in-one orchestrator with 4-provider redundancy, 3-phase torrent repair, native *arr bridge, embedded SQLite, full Next.js dashboard, and single container deployment.',
+      'All-in-one orchestrator with 11-provider redundancy, 3-phase torrent repair, native *arr bridge, embedded SQLite, full Next.js dashboard, and single container deployment.',
     highlights: [
-      '4 debrid providers with failover',
+      '11 debrid providers with failover',
       '3-phase dead torrent repair',
       'Native qBittorrent API bridge',
       'Embedded SQLite — zero external DBs',

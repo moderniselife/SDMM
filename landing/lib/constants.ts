@@ -32,7 +32,7 @@ export interface Feature {
 
 export interface Provider {
   name: string;
-  status: 'stable' | 'beta' | 'planned';
+  status: 'stable' | 'testing' | 'untested' | 'beta' | 'planned';
   features: string[];
 }
 
@@ -88,7 +88,7 @@ export const FEATURES: Feature[] = [
     icon: Cloud,
     title: 'Multi-Debrid Orchestration',
     description:
-      'Seamlessly manage RealDebrid, TorBox, AllDebrid, and Premiumize from a single interface. Automatic failover between providers.',
+      'Seamlessly manage 11 debrid providers — TorBox, RealDebrid, AllDebrid, Premiumize, Debrid-Link, Deepbrid, Offcloud, Put.io, MegaDebrid, Seedr, and PikPak — from a single interface with automatic failover.',
   },
   {
     icon: Search,
@@ -146,24 +146,59 @@ export const FEATURES: Feature[] = [
 
 export const PROVIDERS: Provider[] = [
   {
-    name: 'RealDebrid',
-    status: 'stable',
-    features: ['Torrents', 'Cached content', 'WebDAV bridge', 'FUSE mounts'],
-  },
-  {
     name: 'TorBox',
     status: 'stable',
     features: ['Torrents', 'Usenet', 'Web downloads', 'WebDAV bridge', 'FUSE mounts'],
   },
   {
-    name: 'AllDebrid',
+    name: 'RealDebrid',
     status: 'stable',
     features: ['Torrents', 'Cached content', 'WebDAV bridge', 'FUSE mounts'],
   },
   {
+    name: 'AllDebrid',
+    status: 'testing',
+    features: ['Torrents', 'Cached content', 'WebDAV bridge', 'FUSE mounts'],
+  },
+  {
     name: 'Premiumize',
-    status: 'stable',
-    features: ['Torrents', 'Usenet', 'WebDAV bridge', 'FUSE mounts'],
+    status: 'untested',
+    features: ['Torrents', 'WebDAV bridge', 'FUSE mounts'],
+  },
+  {
+    name: 'Debrid-Link',
+    status: 'untested',
+    features: ['Torrents', 'WebDAV bridge', 'FUSE mounts'],
+  },
+  {
+    name: 'Deepbrid',
+    status: 'untested',
+    features: ['Torrents', 'WebDAV bridge', 'FUSE mounts'],
+  },
+  {
+    name: 'Offcloud',
+    status: 'untested',
+    features: ['Torrents', 'WebDAV bridge', 'FUSE mounts'],
+  },
+  {
+    name: 'Put.io',
+    status: 'untested',
+    features: ['Torrents', 'WebDAV bridge', 'FUSE mounts'],
+  },
+  {
+    name: 'MegaDebrid',
+    status: 'untested',
+    features: ['Torrents'],
+  },
+  {
+    name: 'Seedr',
+    status: 'untested',
+    features: ['Torrents', 'WebDAV bridge', 'FUSE mounts'],
+  },
+  {
+    name: 'PikPak',
+    status: 'untested',
+    features: ['Torrents', 'WebDAV bridge', 'FUSE mounts', 'JWT auth'],
   },
 ];
 
@@ -187,7 +222,7 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
         default: 'torbox',
         required: true,
         description:
-          'Comma-separated list of enabled debrid providers (torbox, realdebrid, alldebrid, premiumize).',
+          'Comma-separated list of enabled debrid providers (torbox, realdebrid, alldebrid, premiumize, debridlink, deepbrid, offcloud, putio, megadebrid, seedr, pikpak).',
       },
       {
         name: 'ADD_STRATEGY',
@@ -210,34 +245,124 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
       },
     ],
   },
-  debrid: {
-    title: 'Debrid Providers',
-    description: 'API keys and tokens for your debrid service accounts.',
+  debridTorbox: {
+    title: 'TorBox',
+    description: 'API and WebDAV configuration for TorBox.',
     variables: [
-      {
-        name: 'TORBOX_API_KEY',
-        default: '',
-        required: false,
-        description: 'API key for TorBox. Required if TorBox is in PROVIDERS list.',
-      },
-      {
-        name: 'RD_ACCESS_TOKEN',
-        default: '',
-        required: false,
-        description: 'Access token for RealDebrid. Required if realdebrid is in PROVIDERS list.',
-      },
-      {
-        name: 'AD_API_KEY',
-        default: '',
-        required: false,
-        description: 'API key for AllDebrid. Required if alldebrid is in PROVIDERS list.',
-      },
-      {
-        name: 'PM_API_KEY',
-        default: '',
-        required: false,
-        description: 'API key for Premiumize. Required if premiumize is in PROVIDERS list.',
-      },
+      { name: 'TORBOX_API_KEY', default: '', required: false, description: 'API key for TorBox. Required if TorBox is in PROVIDERS list.' },
+      { name: 'TORBOX_BASE_URL', default: '', required: false, description: 'Base URL for TorBox API.' },
+      { name: 'TORBOX_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for TorBox.' },
+      { name: 'TORBOX_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for TorBox.' },
+      { name: 'TORBOX_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for TorBox.' },
+    ],
+  },
+  debridRealdebrid: {
+    title: 'RealDebrid',
+    description: 'API and WebDAV configuration for RealDebrid.',
+    variables: [
+      { name: 'RD_ACCESS_TOKEN', default: '', required: false, description: 'Access token for RealDebrid. Required if realdebrid is in PROVIDERS list.' },
+      { name: 'RD_API_BASE', default: '', required: false, description: 'Base URL for RealDebrid API.' },
+      { name: 'RD_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for RealDebrid.' },
+      { name: 'RD_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for RealDebrid.' },
+      { name: 'RD_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for RealDebrid.' },
+    ],
+  },
+  debridAlldebrid: {
+    title: 'AllDebrid',
+    description: 'API and WebDAV configuration for AllDebrid. In-testing 🧪.',
+    variables: [
+      { name: 'ALLDEBRID_API_KEY', default: '', required: false, description: 'API key for AllDebrid. Required if alldebrid is in PROVIDERS list.' },
+      { name: 'ALLDEBRID_API_BASE', default: '', required: false, description: 'Base URL for AllDebrid API.' },
+      { name: 'ALLDEBRID_AGENT', default: '', required: false, description: 'User agent for AllDebrid API requests.' },
+      { name: 'ALLDEBRID_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for AllDebrid.' },
+      { name: 'ALLDEBRID_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for AllDebrid.' },
+      { name: 'ALLDEBRID_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for AllDebrid.' },
+    ],
+  },
+  debridPremiumize: {
+    title: 'Premiumize',
+    description: 'API and WebDAV configuration for Premiumize. Untested ⚠️.',
+    variables: [
+      { name: 'PREMIUMIZE_API_KEY', default: '', required: false, description: 'API key for Premiumize. Required if premiumize is in PROVIDERS list.' },
+      { name: 'PREMIUMIZE_API_BASE', default: '', required: false, description: 'Base URL for Premiumize API.' },
+      { name: 'PREMIUMIZE_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for Premiumize.' },
+      { name: 'PREMIUMIZE_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for Premiumize.' },
+      { name: 'PREMIUMIZE_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for Premiumize.' },
+    ],
+  },
+  debridDebridlink: {
+    title: 'Debrid-Link',
+    description: 'API and WebDAV configuration for Debrid-Link. Untested ⚠️.',
+    variables: [
+      { name: 'DEBRIDLINK_API_KEY', default: '', required: false, description: 'API key for Debrid-Link.' },
+      { name: 'DEBRIDLINK_API_BASE', default: '', required: false, description: 'Base URL for Debrid-Link API.' },
+      { name: 'DEBRIDLINK_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for Debrid-Link.' },
+      { name: 'DEBRIDLINK_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for Debrid-Link.' },
+      { name: 'DEBRIDLINK_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for Debrid-Link.' },
+    ],
+  },
+  debridDeepbrid: {
+    title: 'Deepbrid',
+    description: 'API and WebDAV configuration for Deepbrid. Untested ⚠️.',
+    variables: [
+      { name: 'DEEPBRID_API_KEY', default: '', required: false, description: 'API key for Deepbrid.' },
+      { name: 'DEEPBRID_API_BASE', default: '', required: false, description: 'Base URL for Deepbrid API.' },
+      { name: 'DEEPBRID_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for Deepbrid.' },
+      { name: 'DEEPBRID_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for Deepbrid.' },
+      { name: 'DEEPBRID_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for Deepbrid.' },
+    ],
+  },
+  debridOffcloud: {
+    title: 'Offcloud',
+    description: 'API and WebDAV configuration for Offcloud. Untested ⚠️.',
+    variables: [
+      { name: 'OFFCLOUD_API_KEY', default: '', required: false, description: 'API key for Offcloud.' },
+      { name: 'OFFCLOUD_API_BASE', default: '', required: false, description: 'Base URL for Offcloud API.' },
+      { name: 'OFFCLOUD_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for Offcloud.' },
+      { name: 'OFFCLOUD_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for Offcloud.' },
+      { name: 'OFFCLOUD_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for Offcloud.' },
+    ],
+  },
+  debridPutio: {
+    title: 'Put.io',
+    description: 'API and WebDAV configuration for Put.io. Untested ⚠️.',
+    variables: [
+      { name: 'PUTIO_OAUTH_TOKEN', default: '', required: false, description: 'OAuth token for Put.io.' },
+      { name: 'PUTIO_API_BASE', default: '', required: false, description: 'Base URL for Put.io API.' },
+      { name: 'PUTIO_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for Put.io.' },
+      { name: 'PUTIO_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for Put.io.' },
+      { name: 'PUTIO_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for Put.io.' },
+    ],
+  },
+  debridMegadebrid: {
+    title: 'MegaDebrid',
+    description: 'API configuration for MegaDebrid. No WebDAV support. Untested ⚠️.',
+    variables: [
+      { name: 'MEGADEBRID_API_KEY', default: '', required: false, description: 'API key for MegaDebrid.' },
+      { name: 'MEGADEBRID_API_BASE', default: '', required: false, description: 'Base URL for MegaDebrid API.' },
+    ],
+  },
+  debridSeedr: {
+    title: 'Seedr',
+    description: 'API and WebDAV configuration for Seedr. Untested ⚠️.',
+    variables: [
+      { name: 'SEEDR_API_KEY', default: '', required: false, description: 'API key for Seedr.' },
+      { name: 'SEEDR_API_BASE', default: '', required: false, description: 'Base URL for Seedr API.' },
+      { name: 'SEEDR_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for Seedr.' },
+      { name: 'SEEDR_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for Seedr.' },
+      { name: 'SEEDR_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for Seedr.' },
+    ],
+  },
+  debridPikpak: {
+    title: 'PikPak',
+    description: 'API and WebDAV configuration for PikPak. JWT authentication. Untested ⚠️.',
+    variables: [
+      { name: 'PIKPAK_USERNAME', default: '', required: false, description: 'Username for PikPak JWT authentication.' },
+      { name: 'PIKPAK_PASSWORD', default: '', required: false, description: 'Password for PikPak JWT authentication.' },
+      { name: 'PIKPAK_API_BASE', default: '', required: false, description: 'Base URL for PikPak API.' },
+      { name: 'PIKPAK_WEBDAV_URL', default: '', required: false, description: 'WebDAV endpoint for PikPak.' },
+      { name: 'PIKPAK_WEBDAV_USERNAME', default: '', required: false, description: 'WebDAV username for PikPak.' },
+      { name: 'PIKPAK_WEBDAV_PASSWORD', default: '', required: false, description: 'WebDAV password for PikPak.' },
     ],
   },
   indexers: {
@@ -428,20 +553,20 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
   },
   downloadTokens: {
     title: 'Download Tokens',
-    description: 'Token-based authentication for direct download endpoints.',
+    description: 'Token-based authentication for direct download endpoints. All 11 providers support download tokens.',
     variables: [
-      {
-        name: 'DOWNLOAD_TOKEN_SECRET',
-        default: '',
-        required: false,
-        description: 'Secret key for generating download tokens. Auto-generated if empty.',
-      },
-      {
-        name: 'DOWNLOAD_TOKEN_EXPIRY',
-        default: '3600',
-        required: false,
-        description: 'Token expiry time in seconds.',
-      },
+      { name: 'RD_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for RealDebrid (comma-separated).' },
+      { name: 'TORBOX_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for TorBox (comma-separated).' },
+      { name: 'AD_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for AllDebrid (comma-separated).' },
+      { name: 'PM_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for Premiumize (comma-separated).' },
+      { name: 'DL_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for Debrid-Link (comma-separated).' },
+      { name: 'DB_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for Deepbrid (comma-separated).' },
+      { name: 'OC_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for Offcloud (comma-separated).' },
+      { name: 'PUTIO_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for Put.io (comma-separated).' },
+      { name: 'MD_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for MegaDebrid (comma-separated).' },
+      { name: 'SEEDR_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for Seedr (comma-separated).' },
+      { name: 'PIKPAK_DOWNLOAD_TOKENS', default: '', required: false, description: 'Download tokens for PikPak (comma-separated).' },
+      { name: 'TOKEN_RESET_TIMEZONE', default: 'Australia/Sydney', required: false, description: 'Timezone used for daily token reset scheduling.' },
       {
         name: 'AUTO_UPDATE_ENABLED',
         default: 'false',
@@ -499,30 +624,18 @@ export const INTEGRATIONS: Integration[] = [
     icon: Globe,
     category: 'request-manager',
   },
-  {
-    name: 'RealDebrid',
-    description: 'Unrestricted downloader.',
-    icon: Cloud,
-    category: 'debrid',
-  },
-  {
-    name: 'TorBox',
-    description: 'All-in-one debrid service.',
-    icon: Cloud,
-    category: 'debrid',
-  },
-  {
-    name: 'AllDebrid',
-    description: 'Multi-hoster and torrent downloader.',
-    icon: Cloud,
-    category: 'debrid',
-  },
-  {
-    name: 'Premiumize',
-    description: 'Cloud downloader and VPN service.',
-    icon: Cloud,
-    category: 'debrid',
-  },
+  // Debrid Providers
+  { name: 'TorBox', description: 'All-in-one debrid with torrents, usenet & web downloads.', icon: Cloud, category: 'debrid' },
+  { name: 'RealDebrid', description: 'Unrestricted downloader.', icon: Cloud, category: 'debrid' },
+  { name: 'AllDebrid', description: 'Multi-hoster and torrent downloader.', icon: Cloud, category: 'debrid' },
+  { name: 'Premiumize', description: 'Cloud downloader and VPN service.', icon: Cloud, category: 'debrid' },
+  { name: 'Debrid-Link', description: 'French multi-hoster debrid service.', icon: Cloud, category: 'debrid' },
+  { name: 'Deepbrid', description: 'Free and premium link generator.', icon: Cloud, category: 'debrid' },
+  { name: 'Offcloud', description: 'Cloud-based download manager.', icon: Cloud, category: 'debrid' },
+  { name: 'Put.io', description: 'Cloud storage with torrent support.', icon: Cloud, category: 'debrid' },
+  { name: 'MegaDebrid', description: 'Multi-hoster without WebDAV.', icon: Cloud, category: 'debrid' },
+  { name: 'Seedr', description: 'Cloud torrent client.', icon: Cloud, category: 'debrid' },
+  { name: 'PikPak', description: 'Cloud drive with JWT authentication.', icon: Cloud, category: 'debrid' },
 ];
 
 // ─────────────────────────────────────────────
@@ -632,7 +745,7 @@ export const FOOTER_LINKS: Record<string, FooterLinkGroup> = {
 // ─────────────────────────────────────────────
 
 export const STATS: Stat[] = [
-  { label: 'Debrid Providers', value: '4' },
+  { label: 'Debrid Providers', value: '11' },
   { label: 'Media Servers', value: '3' },
   { label: 'Containers', value: '1', suffix: 'to deploy' },
   { label: 'Setup Time', value: '<5', suffix: 'minutes' },

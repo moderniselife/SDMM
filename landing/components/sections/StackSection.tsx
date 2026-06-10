@@ -15,7 +15,7 @@ const products = [
     subtitle: 'The Orchestrator',
     description:
       'Automates media requests, searches indexers, submits to debrid providers, mounts as virtual drives, and serves content to your media servers. The brain of the operation.',
-    stats: ['4 providers', '6 watchlist sources', '4 scrapers'],
+    stats: ['11 providers', '6 watchlist sources', '4 scrapers'],
     version: 'v0.5.3',
     gradient: 'from-purple-500 to-blue-500',
     link: 'https://github.com/moderniselife/SchroDrive',

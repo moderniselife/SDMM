@@ -44,7 +44,7 @@ const philosophyItems = [
     icon: Layers,
     title: 'Provider-agnostic by design',
     description:
-      'RealDebrid, TorBox, AllDebrid, Premiumize — swap, combine, or run them all. Every provider implements the same interface; adding a new one is a single file.',
+      'TorBox, RealDebrid, AllDebrid, Premiumize, Debrid-Link, Deepbrid, Offcloud, Put.io, MegaDebrid, Seedr, PikPak — swap, combine, or run them all. Every provider implements the same interface; adding a new one is a single file.',
   },
   {
     icon: Shield,

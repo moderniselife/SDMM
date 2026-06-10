@@ -52,7 +52,7 @@ const coreChangelog: VersionEntry[] = [
     emoji: '🚀',
     tagline: '.torrent file support, cloud storage mounts, STRM short-codes',
     changes: [
-      { category: 'Added', text: '.torrent file support — indexer results that return .torrent URLs are no longer discarded, implemented across all 4 providers' },
+      { category: 'Added', text: '.torrent file support — indexer results that return .torrent URLs are no longer discarded, implemented across all 11 providers' },
       { category: 'Added', text: 'Cloud storage virtual mounts: Mega, Google Drive, Dropbox, OneDrive via rclone combine backend' },
       { category: 'Added', text: 'STRM short-code service: stable 16-char codes that 302 redirect to ephemeral CDN URLs with 7-day TTL' },
       { category: 'Added', text: 'Error video fallback: 10-second black MP4 served when download URLs are broken, preventing media player hangs' },
@@ -81,7 +81,7 @@ const coreChangelog: VersionEntry[] = [
     emoji: '🔑',
     tagline: 'Multi-token download rotation + self-healing',
     changes: [
-      { category: 'Added', text: 'Multi-token download rotation: provider-agnostic token rotation inspired by Zurg, rotating on HTTP 503 bandwidth limits across all 4 providers' },
+      { category: 'Added', text: 'Multi-token download rotation: provider-agnostic token rotation inspired by Zurg, rotating on HTTP 503 bandwidth limits across all 11 providers' },
       { category: 'Added', text: 'Unified media server stream detection: pauses background loops during active Plex, Jellyfin, and Emby streams' },
       { category: 'Added', text: 'FUSE mount self-healing and port probing: auto-detects stale mounts, scans up to 20 sequential ports if WebDAV port is blocked' },
       { category: 'Added', text: 'Graceful FUSE unmounting on shutdown (SIGTERM/SIGINT) and auto-updater exits — prevents orphaned rclone processes' },
@@ -94,11 +94,11 @@ const coreChangelog: VersionEntry[] = [
     version: 'v0.4.0',
     date: '2026-06-06',
     emoji: '🗄️',
-    tagline: 'SQLite persistence + Stremio addon + 4-provider repair',
+    tagline: 'SQLite persistence + Stremio addon + 11-provider repair',
     changes: [
       { category: 'Added', text: 'SQLite persistence layer with WAL journalling, 5 tables, graceful degradation, and daily pruning' },
       { category: 'Added', text: 'Stremio addon server: SchröDrive exposes itself as an installable Stremio addon for searching and streaming' },
-      { category: 'Added', text: 'Torrent repair on all 4 providers (RealDebrid, TorBox, AllDebrid, Premiumize) with 3-phase repair cycle' },
+      { category: 'Added', text: 'Torrent repair on all 11 providers (TorBox, RealDebrid, AllDebrid, Premiumize, Debrid-Link, Deepbrid, Offcloud, Put.io, MegaDebrid, Seedr, PikPak) with 3-phase repair cycle' },
       { category: 'Changed', text: 'Blacklist auto-migration from /tmp to ./data with SQLite backup and recovery' },
     ],
   },

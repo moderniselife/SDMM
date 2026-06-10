@@ -18,7 +18,7 @@ const features = [
     icon: Globe,
     title: 'Multi-Provider Debrid',
     description:
-      'RealDebrid, TorBox, AllDebrid, and Premiumize with intelligent failover strategies. Never lose a download again.',
+      '11 providers — RealDebrid, TorBox, AllDebrid, Premiumize, Debrid-Link, Deepbrid, Offcloud, Put.io, MegaDebrid, Seedr & PikPak — with intelligent failover strategies. Never lose a download again.',
     gradient: 'from-purple-500 to-violet-500',
   },
   {

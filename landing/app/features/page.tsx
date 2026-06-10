@@ -48,15 +48,22 @@ import Button from '@/components/ui/Button';
 
 interface DebridProvider {
   name: string;
-  status: 'supported' | 'untested';
+  status: 'supported' | 'in-testing' | 'untested';
   features: { torrents: boolean; web: boolean; usenet: boolean; webdav: boolean; bridge: boolean };
 }
 
 const providers: DebridProvider[] = [
-  { name: 'RealDebrid', status: 'supported', features: { torrents: true, web: true, usenet: false, webdav: true, bridge: true } },
   { name: 'TorBox', status: 'supported', features: { torrents: true, web: true, usenet: true, webdav: true, bridge: true } },
-  { name: 'AllDebrid', status: 'untested', features: { torrents: true, web: true, usenet: false, webdav: true, bridge: true } },
-  { name: 'Premiumize', status: 'untested', features: { torrents: true, web: true, usenet: false, webdav: true, bridge: true } },
+  { name: 'RealDebrid', status: 'supported', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'AllDebrid', status: 'in-testing', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'Premiumize', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'Debrid-Link', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'Deepbrid', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'Offcloud', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'Put.io', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'MegaDebrid', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: false, bridge: true } },
+  { name: 'Seedr', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'PikPak', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
 ];
 
 const strategies = [
@@ -160,9 +167,16 @@ function FeatureCheck({ supported }: { supported: boolean }) {
   );
 }
 
-function StatusBadge({ status }: { status: 'supported' | 'untested' }) {
+function StatusBadge({ status }: { status: 'supported' | 'in-testing' | 'untested' }) {
   if (status === 'supported') {
     return <Badge variant="gradient">✅ Fully Supported</Badge>;
+  }
+  if (status === 'in-testing') {
+    return (
+      <Badge variant="outline" className="border-sky-500/40 text-sky-400">
+        🧪 In-testing
+      </Badge>
+    );
   }
   return (
     <Badge variant="outline" className="border-amber-500/40 text-amber-400">
@@ -237,11 +251,11 @@ export default function FeaturesPage() {
             <SectionHeader
               icon={Server}
               title="Multi-Provider Debrid Support"
-              description="Connect up to 4 debrid providers with intelligent failover and redundancy strategies."
+              description="Connect up to 11 debrid providers with intelligent failover and redundancy strategies."
             />
 
             {/* Provider Cards */}
-            <AnimatedSection stagger={0.12} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <AnimatedSection stagger={0.08} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
               {providers.map((provider) => (
                 <AnimatedChild key={provider.name}>
                   <GlassCard className="p-6 h-full">
@@ -485,7 +499,7 @@ export default function FeaturesPage() {
                       { label: 'Overseerr', colour: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
                       { label: 'Radarr / Sonarr', colour: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
                       { label: 'SchröDrive (fake qBit)', colour: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
-                      { label: 'Debrid Provider', colour: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+                      { label: '11 Debrid Providers', colour: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
                       { label: 'FUSE Mount', colour: 'bg-pink-500/20 text-pink-300 border-pink-500/30' },
                       { label: 'Plex / Jellyfin', colour: 'bg-sky-500/20 text-sky-300 border-sky-500/30' },
                     ].map((step, idx, arr) => (

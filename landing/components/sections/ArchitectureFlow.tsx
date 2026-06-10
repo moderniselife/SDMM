@@ -22,7 +22,7 @@ const steps = [
     emoji: '🔍',
   },
   {
-    label: 'Debrid',
+    label: '11 Debrid Providers',
     description: 'Cache',
     emoji: '☁️',
   },

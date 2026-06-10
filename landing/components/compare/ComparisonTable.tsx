@@ -26,10 +26,17 @@ const comparisonData: ComparisonRow[] = [
   { label: 'Successor', values: ['—', 'DUMB', '—', '—'] },
 
   // Provider Support
-  { category: 'Provider Support', label: 'RealDebrid', values: ['yes', 'yes', 'yes', 'yes'] },
-  { label: 'TorBox', values: ['yes', 'untested', 'no', 'yes'] },
+  { category: 'Provider Support', label: 'TorBox', values: ['yes', 'untested', 'no', 'yes'] },
+  { label: 'RealDebrid', values: ['yes', 'yes', 'yes', 'yes'] },
   { label: 'AllDebrid', values: ['untested', 'untested', 'no', 'yes'] },
   { label: 'Premiumize', values: ['untested', 'untested', 'no', 'yes'] },
+  { label: 'Debrid-Link', values: ['untested', 'no', 'no', 'no'] },
+  { label: 'Deepbrid', values: ['untested', 'no', 'no', 'no'] },
+  { label: 'Offcloud', values: ['untested', 'no', 'no', 'no'] },
+  { label: 'Put.io', values: ['untested', 'no', 'no', 'no'] },
+  { label: 'MegaDebrid', values: ['untested', 'no', 'no', 'no'] },
+  { label: 'Seedr', values: ['untested', 'no', 'no', 'no'] },
+  { label: 'PikPak', values: ['untested', 'no', 'no', 'no'] },
   { label: 'Multi-Provider Failover', values: ['yes', 'no', 'no', 'no'] },
   { label: 'Multi-Token Rotation', values: ['yes', 'no', 'no', 'no'] },
 

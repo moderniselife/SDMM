@@ -4,7 +4,7 @@ import { motion, useInView, animate } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 
 const stats = [
-  { value: 4, label: 'Debrid Providers' },
+  { value: 11, label: 'Debrid Providers' },
   { value: 6, label: 'Watchlist Sources' },
   { value: 4, label: 'Stremio Scrapers' },
   { value: 1, label: 'Container Required' },

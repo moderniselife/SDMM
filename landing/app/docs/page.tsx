@@ -68,7 +68,7 @@ export default function DocsPage() {
           />
           <PrerequisiteCard
             title="Debrid Service Account"
-            description="At least one of: RealDebrid, TorBox, AllDebrid, or Premiumize."
+            description="At least one of: TorBox, RealDebrid, AllDebrid, Premiumize, Debrid-Link, Deepbrid, Offcloud, Put.io, MegaDebrid, Seedr, or PikPak."
             required
           />
           <PrerequisiteCard
@@ -298,10 +298,70 @@ TZ=Australia/Sydney`}
             variables={ENV_VARS.core.variables}
           />
           <EnvTable
-            id="env-debrid"
-            title={ENV_VARS.debrid.title}
-            description={ENV_VARS.debrid.description}
-            variables={ENV_VARS.debrid.variables}
+            id="env-debrid-torbox"
+            title={ENV_VARS.debridTorbox.title}
+            description={ENV_VARS.debridTorbox.description}
+            variables={ENV_VARS.debridTorbox.variables}
+          />
+          <EnvTable
+            id="env-debrid-realdebrid"
+            title={ENV_VARS.debridRealdebrid.title}
+            description={ENV_VARS.debridRealdebrid.description}
+            variables={ENV_VARS.debridRealdebrid.variables}
+          />
+          <EnvTable
+            id="env-debrid-alldebrid"
+            title={ENV_VARS.debridAlldebrid.title}
+            description={ENV_VARS.debridAlldebrid.description}
+            variables={ENV_VARS.debridAlldebrid.variables}
+          />
+          <EnvTable
+            id="env-debrid-premiumize"
+            title={ENV_VARS.debridPremiumize.title}
+            description={ENV_VARS.debridPremiumize.description}
+            variables={ENV_VARS.debridPremiumize.variables}
+          />
+          <EnvTable
+            id="env-debrid-debridlink"
+            title={ENV_VARS.debridDebridlink.title}
+            description={ENV_VARS.debridDebridlink.description}
+            variables={ENV_VARS.debridDebridlink.variables}
+          />
+          <EnvTable
+            id="env-debrid-deepbrid"
+            title={ENV_VARS.debridDeepbrid.title}
+            description={ENV_VARS.debridDeepbrid.description}
+            variables={ENV_VARS.debridDeepbrid.variables}
+          />
+          <EnvTable
+            id="env-debrid-offcloud"
+            title={ENV_VARS.debridOffcloud.title}
+            description={ENV_VARS.debridOffcloud.description}
+            variables={ENV_VARS.debridOffcloud.variables}
+          />
+          <EnvTable
+            id="env-debrid-putio"
+            title={ENV_VARS.debridPutio.title}
+            description={ENV_VARS.debridPutio.description}
+            variables={ENV_VARS.debridPutio.variables}
+          />
+          <EnvTable
+            id="env-debrid-megadebrid"
+            title={ENV_VARS.debridMegadebrid.title}
+            description={ENV_VARS.debridMegadebrid.description}
+            variables={ENV_VARS.debridMegadebrid.variables}
+          />
+          <EnvTable
+            id="env-debrid-seedr"
+            title={ENV_VARS.debridSeedr.title}
+            description={ENV_VARS.debridSeedr.description}
+            variables={ENV_VARS.debridSeedr.variables}
+          />
+          <EnvTable
+            id="env-debrid-pikpak"
+            title={ENV_VARS.debridPikpak.title}
+            description={ENV_VARS.debridPikpak.description}
+            variables={ENV_VARS.debridPikpak.variables}
           />
           <EnvTable
             id="env-indexers"

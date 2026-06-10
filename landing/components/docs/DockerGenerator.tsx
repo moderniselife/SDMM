@@ -73,8 +73,15 @@ interface MediaManagerConfig {
 const DEFAULT_PROVIDERS: ProviderConfig[] = [
   { id: 'torbox', name: 'TorBox', envKey: 'TORBOX_API_KEY', enabled: true, apiKeyLabel: 'API Key', apiKey: '' },
   { id: 'realdebrid', name: 'RealDebrid', envKey: 'RD_ACCESS_TOKEN', enabled: true, apiKeyLabel: 'Access Token', apiKey: '' },
-  { id: 'alldebrid', name: 'AllDebrid', envKey: 'AD_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
-  { id: 'premiumize', name: 'Premiumize', envKey: 'PM_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'alldebrid', name: 'AllDebrid', envKey: 'ALLDEBRID_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'premiumize', name: 'Premiumize', envKey: 'PREMIUMIZE_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'debridlink', name: 'Debrid-Link', envKey: 'DEBRIDLINK_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'deepbrid', name: 'Deepbrid', envKey: 'DEEPBRID_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'offcloud', name: 'Offcloud', envKey: 'OFFCLOUD_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'putio', name: 'Put.io', envKey: 'PUTIO_OAUTH_TOKEN', enabled: false, apiKeyLabel: 'OAuth Token', apiKey: '' },
+  { id: 'megadebrid', name: 'MegaDebrid', envKey: 'MEGADEBRID_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'seedr', name: 'Seedr', envKey: 'SEEDR_API_KEY', enabled: false, apiKeyLabel: 'API Key', apiKey: '' },
+  { id: 'pikpak', name: 'PikPak', envKey: 'PIKPAK_USERNAME', enabled: false, apiKeyLabel: 'Username', apiKey: '' },
 ];
 
 const DEFAULT_INTEGRATIONS: IntegrationConfig[] = [
