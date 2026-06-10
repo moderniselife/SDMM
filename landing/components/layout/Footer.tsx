@@ -7,9 +7,9 @@ import GradientText from '@/components/ui/GradientText';
 
 const footerLinks = {
   Product: [
-    { label: 'Features', href: '/#features' },
-    { label: 'Docker Setup', href: '/#docker' },
-    { label: 'Compare', href: '/#compare' },
+    { label: 'Features', href: '/features' },
+    { label: 'Docker Generator', href: '/docs/docker' },
+    { label: 'Compare', href: '/compare' },
     { label: 'Changelog', href: '/changelog' },
     { label: 'About', href: '/about' },
   ],

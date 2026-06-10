@@ -8,10 +8,10 @@ import Link from 'next/link';
 import GradientText from '@/components/ui/GradientText';
 
 const navLinks = [
-  { label: 'Features', href: '/#features' },
+  { label: 'Features', href: '/features' },
   { label: 'Docs', href: '/docs' },
-  { label: 'Docker', href: '/#docker' },
-  { label: 'Compare', href: '/#compare' },
+  { label: 'Docker', href: '/docs/docker' },
+  { label: 'Compare', href: '/compare' },
   { label: 'Changelog', href: '/changelog' },
   { label: 'About', href: '/about' },
 ];

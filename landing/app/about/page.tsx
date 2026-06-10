@@ -24,8 +24,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import AnimatedSection, { AnimatedChild } from '@/components/ui/AnimatedSection';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
+
 import { GitHubStatsBar } from '@/components/ui/GitHubStats';
 import NewsletterSignup from '@/components/ui/NewsletterSignup';
 
@@ -109,7 +108,6 @@ const itemVariants = {
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#030014] text-white">
-      <Navbar />
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4 text-center overflow-hidden">
@@ -382,8 +380,6 @@ export default function AboutPage() {
           <NewsletterSignup />
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

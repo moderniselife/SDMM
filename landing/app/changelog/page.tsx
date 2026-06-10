@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/ui/GradientText';
 import AnimatedSection, { AnimatedChild } from '@/components/ui/AnimatedSection';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
+
 import NewsletterSignup from '@/components/ui/NewsletterSignup';
 
 /* ------------------------------------------------------------------ */
@@ -289,7 +288,6 @@ export default function ChangelogPage() {
 
   return (
     <div className="min-h-screen bg-[#030014] text-white">
-      <Navbar />
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 px-4 text-center overflow-hidden">
@@ -366,8 +364,6 @@ export default function ChangelogPage() {
           <NewsletterSignup />
         </div>
       </section>
-
-      <Footer />
     </div>
   );
 }

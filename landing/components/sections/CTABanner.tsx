@@ -115,7 +115,7 @@ export default function CTABanner() {
               Read the Docs
               <ExternalLink className="h-4 w-4" />
             </Button>
-            <Button href="/docs/compose" size="lg" variant="secondary">
+            <Button href="/docs/docker" size="lg" variant="secondary">
               <FileCode2 className="h-5 w-5" />
               Generate Docker Compose
             </Button>
