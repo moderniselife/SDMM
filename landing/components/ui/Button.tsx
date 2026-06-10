@@ -45,13 +45,7 @@ export default function Button({
   type = 'button',
   disabled = false,
 }: ButtonProps) {
-  const combinedClassName = `
-    inline-flex items-center justify-center gap-2 font-medium
-    transition-all duration-200 cursor-pointer
-    ${variantStyles[variant]}
-    ${sizeStyles[size]}
-    ${className}
-  `;
+  const combinedClassName = `inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 cursor-pointer ${variantStyles[variant]} ${sizeStyles[size]} ${className}`.trim();
 
   if (href) {
     return (

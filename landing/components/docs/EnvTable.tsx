@@ -120,11 +120,7 @@ export default function EnvTable({
                     {filteredVars.map((v, i) => (
                       <tr
                         key={v.name}
-                        className={`
-                          border-b border-white/5 transition-colors duration-150
-                          ${i % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.02]'}
-                          hover:bg-white/[0.04]
-                        `}
+                        className={`border-b border-white/5 transition-colors duration-150 ${i % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.02]'} hover:bg-white/[0.04]`}
                       >
                         <td className="px-6 py-3">
                           <code className="text-sm font-mono text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded">

@@ -421,19 +421,9 @@ export default function DockerGenerator() {
             <button
               key={step.num}
               onClick={() => setActiveStep(step.num)}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
-                transition-all duration-200 border
-                ${isActive
-                  ? 'bg-purple-500/20 border-purple-500/40 text-purple-300'
-                  : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10'
-                }
-              `}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${isActive ? 'bg-purple-500/20 border-purple-500/40 text-purple-300' : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80 hover:bg-white/10'}`}
             >
-              <span className={`
-                w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                ${isActive ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'}
-              `}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isActive ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/40'}`}>
                 {step.num}
               </span>
               <Icon className="w-4 h-4" />
@@ -601,13 +591,7 @@ export default function DockerGenerator() {
                         onClick={() =>
                           setMediaManager((m) => ({ ...m, encoderDefault: enc }))
                         }
-                        className={`
-                          px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200
-                          ${mediaManager.encoderDefault === enc
-                            ? 'bg-purple-500/20 border-purple-500/40 text-purple-300'
-                            : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'
-                          }
-                        `}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200 ${mediaManager.encoderDefault === enc ? 'bg-purple-500/20 border-purple-500/40 text-purple-300' : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'}`}
                       >
                         {enc === 'nvenc' ? 'NVIDIA NVENC' : 'CPU (x265)'}
                       </button>
@@ -802,21 +786,11 @@ function ToggleRow({
   return (
     <button
       onClick={onToggle}
-      className={`
-        w-full flex items-center gap-4 p-3 rounded-xl text-left
-        transition-all duration-200 border
-        ${enabled
-          ? 'bg-purple-500/10 border-purple-500/20'
-          : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'
-        }
-      `}
+      className={`w-full flex items-center gap-4 p-3 rounded-xl text-left transition-all duration-200 border ${enabled ? 'bg-purple-500/10 border-purple-500/20' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'}`}
     >
       {/* Toggle switch */}
       <div
-        className={`
-          relative w-10 h-5 rounded-full flex-shrink-0 transition-colors duration-200
-          ${enabled ? 'bg-purple-500' : 'bg-white/15'}
-        `}
+        className={`relative w-10 h-5 rounded-full flex-shrink-0 transition-colors duration-200 ${enabled ? 'bg-purple-500' : 'bg-white/15'}`}
       >
         <motion.div
           className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm"

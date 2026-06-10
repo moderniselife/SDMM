@@ -161,13 +161,7 @@ export default function DocsSidebar() {
                 }
                 handleNavClick(section.id);
               }}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                ${isActive
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                  : 'text-white/60 hover:text-white/90 hover:bg-white/5'
-                }
-              `}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'text-white/60 hover:text-white/90 hover:bg-white/5'}`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               <span className="flex-1 text-left">{section.label}</span>
@@ -198,13 +192,7 @@ export default function DocsSidebar() {
                         <button
                           key={child.id}
                           onClick={() => handleNavClick(child.id)}
-                          className={`
-                            w-full text-left px-3 py-1.5 rounded-md text-sm transition-all duration-200
-                            ${isChildActive
-                              ? 'text-purple-300 bg-purple-500/10'
-                              : 'text-white/40 hover:text-white/70 hover:bg-white/5'
-                            }
-                          `}
+                          className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-all duration-200 ${isChildActive ? 'text-purple-300 bg-purple-500/10' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
                         >
                           {child.label}
                         </button>
