@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Landing Page**: Award-winning marketing website for SchröDrive built with Next.js 15, TypeScript, TailwindCSS v4, Framer Motion, and Three.js. Features 7 pages (Home, Features, Docs, Docker Compose Generator, Comparison, Changelog, About), a Three.js quantum particle hero scene, interactive Docker Compose configurator with live YAML preview, animated comparison tables, Schrödinger's Copy stack showcase, live GitHub stats, newsletter signup, and responsive glassmorphism design with the purple/blue/pink gradient branding.
+
 ### Changed
 - **Repository Cleanup**: Untracked and ignored custom deployment scripts (`deploy.sh`, `deploy-schrodrive.sh`) and environment configuration (`plex-compose.yml`) to keep local customizations private, and completely purged them from git history. Added `config.json` to `.gitignore` and configured `.gitmodules` with `ignore = untracked` for the `SchroDrive` submodule to maintain a clean git status.
 
