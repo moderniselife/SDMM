@@ -70,7 +70,7 @@ export default function ArchitectureFlow() {
                 transition={{
                   duration: 0.5,
                   delay: index * 0.15,
-                  ease: [0.22, 1, 0.36, 1],
+                  ease: [0.22, 1, 0.36, 1] as const,
                 }}
               >
                 <div className="flex items-center gap-4">
@@ -145,7 +145,7 @@ export default function ArchitectureFlow() {
                   transition={{
                     duration: 0.5,
                     delay: index * 0.15,
-                    ease: [0.22, 1, 0.36, 1],
+                    ease: [0.22, 1, 0.36, 1] as const,
                   }}
                 >
                   <GlassCard className="p-5 text-center" hoverEffect>

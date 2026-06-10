@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 import HeroSection from '@/components/hero/HeroSection';
 import LogoCloud from '@/components/sections/LogoCloud';

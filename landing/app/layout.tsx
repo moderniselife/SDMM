@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   description:
     'Your content exists everywhere and nowhere — until SchröDrive observes it. The ultimate media automation orchestrator for debrid services.',
   openGraph: {
-    title: 'SchröDrive — Media Automation Orchestrator',
+    title: 'SchröDrive',
     description:
-      'Connect Overseerr, Prowlarr, debrid services, and your media server in a single self-healing container.',
+      'The ultimate media automation orchestrator for debrid services.',
     type: 'website',
   },
 };
@@ -32,3 +32,4 @@ export default function RootLayout({
     </html>
   );
 }
+

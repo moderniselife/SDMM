@@ -20,7 +20,7 @@ function AnimatedNumber({ value, isInView }: { value: number; isInView: boolean 
       hasAnimated.current = true;
       const controls = animate(0, value, {
         duration: 1.5,
-        ease: [0.22, 1, 0.36, 1],
+        ease: [0.22, 1, 0.36, 1] as const,
         onUpdate(latest) {
           setDisplayValue(Math.round(latest));
         },
@@ -53,7 +53,7 @@ export default function StatsCounter() {
               transition={{
                 duration: 0.5,
                 delay: index * 0.1,
-                ease: [0.22, 1, 0.36, 1],
+                ease: [0.22, 1, 0.36, 1] as const,
               }}
             >
               <p className="text-4xl font-bold text-white sm:text-5xl md:text-6xl">

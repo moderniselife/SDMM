@@ -1,29 +1,23 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { type ReactNode, type AnchorHTMLAttributes, type ButtonHTMLAttributes } from 'react';
+import { type ReactNode } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface BaseButtonProps {
+interface ButtonProps {
   children: ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;
   className?: string;
+  href?: string;
+  target?: string;
+  rel?: string;
+  onClick?: () => void;
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
 }
-
-type ButtonAsButton = BaseButtonProps &
-  ButtonHTMLAttributes<HTMLButtonElement> & {
-    href?: undefined;
-  };
-
-type ButtonAsLink = BaseButtonProps &
-  AnchorHTMLAttributes<HTMLAnchorElement> & {
-    href: string;
-  };
-
-type ButtonProps = ButtonAsButton | ButtonAsLink;
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
@@ -44,7 +38,12 @@ export default function Button({
   variant = 'primary',
   size = 'md',
   className = '',
-  ...props
+  href,
+  target,
+  rel,
+  onClick,
+  type = 'button',
+  disabled = false,
 }: ButtonProps) {
   const combinedClassName = `
     inline-flex items-center justify-center gap-2 font-medium
@@ -54,28 +53,29 @@ export default function Button({
     ${className}
   `;
 
-  if ('href' in props && props.href) {
-    const { href, ...rest } = props as ButtonAsLink;
+  if (href) {
     return (
       <motion.a
         href={href}
+        target={target}
+        rel={rel}
         className={combinedClassName}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        {...rest}
       >
         {children}
       </motion.a>
     );
   }
 
-  const buttonProps = props as ButtonAsButton;
   return (
     <motion.button
       className={combinedClassName}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      {...buttonProps}
+      onClick={onClick}
+      type={type}
+      disabled={disabled}
     >
       {children}
     </motion.button>

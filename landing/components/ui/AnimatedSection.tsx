@@ -74,7 +74,7 @@ export function AnimatedChild({
     <motion.div
       className={className}
       variants={directionVariants[direction]}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }}
     >
       {children}
     </motion.div>

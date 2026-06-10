@@ -65,7 +65,7 @@ export default function StackSection() {
               transition={{
                 duration: 0.6,
                 delay: index * 0.2,
-                ease: [0.22, 1, 0.36, 1],
+                ease: [0.22, 1, 0.36, 1] as const,
               }}
             >
               <GlassCard className="relative overflow-hidden p-8 h-full">

@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ChevronDown, ExternalLink, Github } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
+import GitHubIcon from '@/components/ui/GitHubIcon';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import GradientText from '@/components/ui/GradientText';
@@ -24,7 +25,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.6,
-      ease: [0.22, 1, 0.36, 1],
+      ease: [0.22, 1, 0.36, 1] as const,
     },
   },
 };
@@ -95,7 +96,7 @@ export default function HeroSection() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <Github className="h-5 w-5" />
+            <GitHubIcon className="h-5 w-5" />
             View on GitHub
           </Button>
         </motion.div>
