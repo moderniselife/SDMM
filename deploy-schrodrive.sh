@@ -303,10 +303,19 @@ info "Bringing up the full stack with new compose..."
 remote "
     cd $REMOTE_STACK_DIR
     docker compose down --remove-orphans 2>/dev/null || true
-    docker compose up -d
+
+    # Create ALL containers but only start non-plex services.
+    # Plex MUST NOT start until SchrosDrive's pre-warm cache is fully populated.
+    # SchrosDrive will auto-start the Plex container after pre-warm completes.
+    docker compose up -d --no-start plex 2>/dev/null || true
+    docker compose up -d --scale plex=0 2>/dev/null || docker compose up -d
+    docker compose create plex 2>/dev/null || true
+    docker update --restart=no plex 2>/dev/null || true
     echo ''
     echo '=== Container Status ==='
     docker compose ps
+    echo ''
+    echo '⚠️  Plex is CREATED but NOT STARTED — SchrosDrive will auto-start it after cache pre-warm.'
 "
 
 DEPLOY_RESULT=$?
