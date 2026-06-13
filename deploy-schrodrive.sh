@@ -51,6 +51,7 @@ REMOTE_ENV_FILE="$REMOTE_STACK_DIR/.env"
 LOCAL_COMPOSE_FILE="$MAIN_REPO_DIR/plex-compose.yml"
 LOCAL_ENV_FILE="$MAIN_REPO_DIR/.env.plex"
 LOCAL_CLOUD_LINKS_FILE="$MAIN_REPO_DIR/cloud_links.json"
+LOCAL_WEBDAV_FILE="$MAIN_REPO_DIR/webdav.json"
 
 # Docker image
 GHCR_IMAGE="ghcr.io/moderniselife/schrodrive"
@@ -259,6 +260,13 @@ if [ -f "$LOCAL_CLOUD_LINKS_FILE" ]; then
     scp -P $SSH_PORT "$LOCAL_CLOUD_LINKS_FILE" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_STACK_DIR/cloud_links.json" && \
         success "cloud_links.json → $REMOTE_STACK_DIR/cloud_links.json" || \
         warning "Failed to upload cloud_links.json (non-fatal)"
+fi
+
+if [ -f "$LOCAL_WEBDAV_FILE" ]; then
+    info "Copying webdav.json → remote stack directory..."
+    scp -P $SSH_PORT "$LOCAL_WEBDAV_FILE" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_STACK_DIR/webdav.json" && \
+        success "webdav.json → $REMOTE_STACK_DIR/webdav.json" || \
+        warning "Failed to upload webdav.json (non-fatal)"
 fi
 
 if [ "$COMPOSE_ONLY" = true ]; then
