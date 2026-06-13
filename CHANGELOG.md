@@ -9,9 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Landing Page**: Award-winning marketing website for SchröDrive built with Next.js 15, TypeScript, TailwindCSS v4, Framer Motion, and Three.js. Features 7 pages (Home, Features, Docs, Docker Compose Generator, Comparison, Changelog, About), a Three.js quantum particle hero scene, interactive Docker Compose configurator with live YAML preview, animated comparison tables, Schrödinger's Copy stack showcase, live GitHub stats, newsletter signup, and responsive glassmorphism design with the purple/blue/pink gradient branding.
+- **External WebDAV mount support** (SchroDrive v0.10.0):
+  - Mount third-party WebDAV servers as read-only FUSE filesystems
+  - Configured via `webdav.json` (gitignored — never committed to git)
+  - Per-mount `skipOrganiser` flag (default: `true`) for pre-sorted content
+  - Mounts appear under `/mnt/schrodrive/webdav/<name>/`
+- **Plex auto-start safety** (SchroDrive v0.10.0):
+  - Deploy script creates Plex container without starting it
+  - SchroDrive auto-starts Plex only after PROPFIND cache pre-warm completes
+  - Prevents Plex from deleting library items by scanning empty cold-cache directories
 
 ### Changed
 - **Repository Cleanup**: Untracked and ignored custom deployment scripts (`deploy.sh`, `deploy-schrodrive.sh`) and environment configuration (`plex-compose.yml`) to keep local customizations private, and completely purged them from git history. Added `config.json` to `.gitignore` and configured `.gitmodules` with `ignore = untracked` for the `SchroDrive` submodule to maintain a clean git status.
+- **Deploy script**: Copies `webdav.json` to remote alongside `cloud_links.json`
+- **Git hygiene**: Added `webdav.json` to `.gitignore`; scrubbed `cloud_links.json` from entire SDMM git history (contained private server URLs)
 
 ### Fixed
 - Fixed Mermaid syntax rendering error in `README.md` diagram by quoting the edge label containing parentheses.
