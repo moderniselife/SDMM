@@ -13,63 +13,71 @@ type CellValue = 'yes' | 'no' | 'untested' | string;
 interface ComparisonRow {
   label: string;
   category?: string;
-  values: [CellValue, CellValue, CellValue, CellValue]; // SchröDrive, pd_zurg, Zurg, Riven
+  values: [CellValue, CellValue, CellValue, CellValue, CellValue]; // SchröDrive, DUMB, pd_zurg, Zurg, Riven
 }
 
-const tools = ['SchröDrive', 'pd_zurg', 'Zurg', 'Riven'] as const;
+const tools = ['SchröDrive', 'DUMB', 'pd_zurg', 'Zurg', 'Riven'] as const;
 
 const comparisonData: ComparisonRow[] = [
   // Status
-  { category: 'Status', label: 'Project Status', values: ['Active', 'Deprecated (Jan 2026)', 'Active (sponsors only)', 'Active (beta)'] },
-  { label: 'Scope', values: ['Full automation orchestrator', 'All-in-one wrapper', 'WebDAV server only', 'Full media automation'] },
-  { label: 'Source', values: ['Open (MIT)', 'Open (archived)', 'Closed (sponsors)', 'Open (GPLv3)'] },
-  { label: 'Successor', values: ['—', 'DUMB', '—', '—'] },
+  { category: 'Status', label: 'Project Status', values: ['Active', 'Active', 'Deprecated (Jan 2026)', 'Active (sponsors only)', 'Active'] },
+  { label: 'Scope', values: ['Full automation orchestrator', 'AIO multi-service wrapper', 'All-in-one wrapper', 'WebDAV server only', 'Full media automation'] },
+  { label: 'Source', values: ['Open (MIT)', 'Open (AGPL-3.0)', 'Open (archived)', 'Closed (sponsors)', 'Open (GPLv3)'] },
+  { label: 'Approach', values: ['Single codebase', 'Bundles ~30 third-party services', 'Wraps Zurg + plex_debrid', 'Standalone Go binary', 'Single codebase'] },
 
   // Provider Support
-  { category: 'Provider Support', label: 'TorBox', values: ['yes', 'untested', 'no', 'yes'] },
-  { label: 'RealDebrid', values: ['yes', 'yes', 'yes', 'yes'] },
-  { label: 'AllDebrid', values: ['untested', 'untested', 'no', 'yes'] },
-  { label: 'Premiumize', values: ['untested', 'untested', 'no', 'yes'] },
-  { label: 'Debrid-Link', values: ['untested', 'no', 'no', 'no'] },
-  { label: 'Deepbrid', values: ['untested', 'no', 'no', 'no'] },
-  { label: 'Offcloud', values: ['untested', 'no', 'no', 'no'] },
-  { label: 'Put.io', values: ['untested', 'no', 'no', 'no'] },
-  { label: 'MegaDebrid', values: ['untested', 'no', 'no', 'no'] },
-  { label: 'Seedr', values: ['untested', 'no', 'no', 'no'] },
-  { label: 'PikPak', values: ['untested', 'no', 'no', 'no'] },
-  { label: 'Multi-Provider Failover', values: ['yes', 'no', 'no', 'no'] },
-  { label: 'Multi-Token Rotation', values: ['yes', 'no', 'no', 'no'] },
+  { category: 'Provider Support', label: 'TorBox', values: ['yes', 'Via cli_debrid', 'no', 'no', 'yes'] },
+  { label: 'RealDebrid', values: ['yes', 'Via Zurg/Decypharr', 'yes', 'yes', 'yes'] },
+  { label: 'AllDebrid', values: ['In-testing 🧪', 'Via cli_debrid', 'yes', 'no', 'yes'] },
+  { label: 'Premiumize', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'Debrid-Link', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'Deepbrid', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'Offcloud', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'Put.io', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'MegaDebrid', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'Seedr', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'PikPak', values: ['untested', 'no', 'no', 'no', 'no'] },
+  { label: 'Multi-Provider Failover', values: ['yes', 'no', 'no', 'no', 'no'] },
+  { label: 'Multi-Token Rotation', values: ['yes', 'no', 'no', 'no', 'no'] },
 
   // Integrations
-  { category: 'Integrations', label: 'Prowlarr', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Jackett', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Torrentio', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Comet', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Zilean', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Mediafusion', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Overseerr', values: ['yes', 'yes', 'no', 'yes'] },
-  { label: 'Radarr/Sonarr (*arr Bridge)', values: ['yes', 'yes', 'no', 'no'] },
-  { label: 'Plex', values: ['yes', 'yes', 'no', 'yes'] },
-  { label: 'Jellyfin', values: ['yes', 'untested', 'no', 'yes'] },
-  { label: 'Emby', values: ['yes', 'untested', 'no', 'untested'] },
-  { label: 'Trakt', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Mdblist', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Listrr', values: ['yes', 'no', 'no', 'no'] },
+  { category: 'Integrations', label: 'Prowlarr', values: ['yes', 'Bundled', 'yes', 'no', 'yes'] },
+  { label: 'Jackett', values: ['yes', 'no', 'yes', 'no', 'yes'] },
+  { label: 'Torrentio', values: ['yes', 'Via plex_debrid', 'no', 'no', 'yes'] },
+  { label: 'Comet', values: ['yes', 'no', 'no', 'no', 'yes'] },
+  { label: 'Zilean', values: ['yes', 'Bundled', 'no', 'no', 'yes'] },
+  { label: 'Mediafusion', values: ['yes', 'no', 'no', 'no', 'yes'] },
+  { label: 'Overseerr / Jellyseerr / Seerr', values: ['yes', 'Bundled (Seerr)', 'yes', 'no', 'yes'] },
+  { label: 'Radarr/Sonarr (*arr Bridge)', values: ['Native (fake qBit)', 'Bundled + Decypharr', 'Needs Decypharr', 'Needs Decypharr', 'Built-in VFS'] },
+  { label: 'Plex', values: ['yes', 'Bundled', 'yes', 'yes', 'yes'] },
+  { label: 'Jellyfin', values: ['yes', 'Bundled', 'no', 'yes', 'yes'] },
+  { label: 'Emby', values: ['yes', 'Bundled', 'no', 'no', 'yes'] },
+  { label: 'Trakt', values: ['yes', 'Via plex_debrid', 'no', 'no', 'yes'] },
+  { label: 'Mdblist', values: ['yes', 'no', 'no', 'no', 'yes'] },
+  { label: 'Listrr', values: ['yes', 'no', 'no', 'no', 'no'] },
+  { label: 'Stremio Addon Server', values: ['yes', 'no', 'no', 'no', 'no'] },
+  { label: 'Usenet (NzbDAV)', values: ['no', 'Bundled', 'no', 'no', 'no'] },
+  { label: 'Tautulli', values: ['yes', 'Bundled', 'no', 'no', 'no'] },
 
   // Architecture
-  { category: 'Architecture', label: 'Container Model', values: ['Single container', 'Single container', 'Single container', 'Multi-container'] },
-  { label: 'Runtime', values: ['Node.js + rclone', 'Python + rclone', 'Go binary', 'Python'] },
-  { label: 'Config Style', values: ['Environment variables', 'YAML + env', 'YAML', 'Settings UI + YAML'] },
-  { label: 'Database', values: ['Embedded SQLite', 'None (stateless)', 'None', 'PostgreSQL'] },
-  { label: 'Web Dashboard', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'External DB Required', values: ['no', 'no', 'no', 'yes'] },
+  { category: 'Architecture', label: 'Container Model', values: ['Single container', 'Single mega-container', 'Single container', 'Single (+rclone)', 'Multi-service (App + DB + Redis)'] },
+  { label: 'Runtime', values: ['Bun/TypeScript', 'Python orchestrator', 'Python + Go', 'Go', 'TypeScript/Node.js'] },
+  { label: 'Config Style', values: ['Env vars + Web GUI', 'Guided setup wizard', 'Env vars + config files', 'Single YAML', 'Settings UI + compose'] },
+  { label: 'Database', values: ['Embedded SQLite', 'PostgreSQL (bundled)', 'None (in-memory)', 'None (in-memory)', 'PostgreSQL + Redis'] },
+  { label: 'Web Dashboard', values: ['10-page Next.js GUI', 'DUMB Dashboard + service UIs', 'no', 'no', 'Settings UI'] },
+  { label: 'External DB Required', values: ['no', 'no', 'no', 'no', 'yes'] },
+  { label: 'External WebDAV Mounts', values: ['yes', 'no', 'no', 'no', 'no'] },
+  { label: 'Cloud Storage Mounts', values: ['yes', 'no', 'no', 'no', 'no'] },
+  { label: 'Reverse Proxy / Tunnels', values: ['no', 'Bundled (Traefik + Cloudflared)', 'no', 'no', 'no'] },
 
   // Resilience
-  { category: 'Resilience', label: 'Dead Torrent Repair', values: ['3-phase auto-repair', 'no', 'no', 'Basic retry'] },
-  { label: 'Mount Health Monitoring', values: ['yes', 'no', 'no', 'yes'] },
-  { label: 'Rate Limit Learning', values: ['yes', 'no', 'no', 'no'] },
-  { label: 'Stale Cache Fallback', values: ['yes', 'no', 'no', 'no'] },
-  { label: 'Persistent Blacklist', values: ['yes', 'no', 'no', 'yes'] },
+  { category: 'Resilience', label: 'Dead Torrent Repair', values: ['3-phase auto-repair', 'Via Zurg', 'Via Zurg', 'enable_repair', 'Not documented'] },
+  { label: 'Mount Health Monitoring', values: ['Auto-remount', 'Via rclone', 'Not documented', 'N/A (WebDAV server)', 'N/A (built-in VFS)'] },
+  { label: 'Rate Limit Learning', values: ['Per-endpoint adaptive', 'no', 'no', 'Configurable limits', 'Not documented'] },
+  { label: 'Stale Cache Fallback', values: ['yes', 'no', 'no', 'no', 'no'] },
+  { label: 'Persistent Blacklist', values: ['yes', 'no', 'no', 'no', 'no'] },
+  { label: 'FUSE Auto-Recovery', values: ['yes', 'no', 'no', 'N/A', 'N/A'] },
+  { label: 'Symlink Backup/Repair', values: ['no', 'yes', 'no', 'no', 'no'] },
 ];
 
 /* ────────────────────────────────────────────────
@@ -166,7 +174,7 @@ export default function ComparisonTable() {
               {row.category && (
                 <tr key={`cat-${row.category}`}>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="py-3 px-4 md:px-6 text-xs font-bold uppercase tracking-wider text-white/30 bg-white/[0.02] border-t border-white/10"
                   >
                     {row.category}
