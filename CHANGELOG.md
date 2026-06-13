@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **DUMB Comparison**: Added [DUMB](https://github.com/I-am-PUID-0/DUMB) (Debrid Unlimited Media Bridge) as 5th column in the landing page comparison table. Cloned and researched the DUMB repository for accurate feature data. DUMB is an AIO multi-service wrapper bundling ~30 third-party projects.
+- **SchröDrive Core v0.9.0 & v0.10.0 Changelog**: Added two new versions to the landing page changelog — v0.9.0 (11-provider ecosystem) and v0.10.0 (External WebDAV mounts, zero-block Plex architecture).
+- **Comparison Table Overhaul**: Expanded from 4 to 5 columns, added new rows (Approach, Usenet/NzbDAV, Tautulli, Reverse Proxy/Tunnels, Symlink Backup, FUSE Auto-Recovery), fixed runtime/provider data accuracy.
 - **Landing Page v0.10.0 Content Update**: Updated landing page documentation, features, and data files to reflect SchröDrive v0.10.0 features:
   - Added **External WebDAV Mounts** feature section (features page, docs page, FeaturesGrid card, Docker generator toggle)
   - Added **Zero-Block Plex Architecture** feature section with two-phase pre-warm startup diagram
