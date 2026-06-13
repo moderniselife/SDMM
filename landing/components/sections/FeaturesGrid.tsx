@@ -25,7 +25,7 @@ const features = [
     icon: HardDrive,
     title: 'Virtual FUSE Drives',
     description:
-      'rclone WebDAV mounts with a built-in bridge. Your debrid content appears as local drives on your media server.',
+      'rclone WebDAV mounts with a built-in bridge, plus external WebDAV server mounting for third-party sources. All your content appears as local drives on your media server.',
     gradient: 'from-blue-500 to-cyan-500',
   },
   {
@@ -46,7 +46,7 @@ const features = [
     icon: LayoutDashboard,
     title: 'Full Web Dashboard',
     description:
-      'Next.js GUI with 10 pages — manage providers, monitor torrents, configure mounts, and view logs in real time.',
+      '10-page Next.js dashboard — overview, content browser, provider management, torrent queue, automation rules, scraper config, mount status, logs & events, settings, and system info.',
     gradient: 'from-amber-500 to-orange-500',
   },
   {

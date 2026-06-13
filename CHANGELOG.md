@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Landing Page v0.10.0 Content Update**: Updated landing page documentation, features, and data files to reflect SchröDrive v0.10.0 features:
+  - Added **External WebDAV Mounts** feature section (features page, docs page, FeaturesGrid card, Docker generator toggle)
+  - Added **Zero-Block Plex Architecture** feature section with two-phase pre-warm startup diagram
+  - Added `WEBDAV_MOUNTS_ENABLED`, `WEBDAV_MOUNTS_FILE`, `WEBDAV_MOUNTS` env vars to docs and constants
+  - Added `WEB_PORT` env var; updated `RUN_WEB_GUI` default to `false`
+  - Added `webdav.json` example configuration to docs
+  - Updated mount tree structure to include `webdav/` directory
+  - Updated Web Dashboard description to specify 10 pages with concrete page names
+  - Updated Virtual FUSE Drives card to mention external WebDAV server mounting
 - **Landing Page**: Award-winning marketing website for SchröDrive built with Next.js 15, TypeScript, TailwindCSS v4, Framer Motion, and Three.js. Features 7 pages (Home, Features, Docs, Docker Compose Generator, Comparison, Changelog, About), a Three.js quantum particle hero scene, interactive Docker Compose configurator with live YAML preview, animated comparison tables, Schrödinger's Copy stack showcase, live GitHub stats, newsletter signup, and responsive glassmorphism design with the purple/blue/pink gradient branding.
 - **External WebDAV mount support** (SchroDrive v0.10.0):
   - Mount third-party WebDAV servers as read-only FUSE filesystems

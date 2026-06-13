@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ExternalLink,
   FileCode2,
+  Globe,
   Info,
   Sparkles,
   Terminal,
@@ -388,6 +389,12 @@ TZ=Australia/Sydney`}
             variables={ENV_VARS.mount.variables}
           />
           <EnvTable
+            id="env-webdav-mounts"
+            title={ENV_VARS.webdavMounts.title}
+            description={ENV_VARS.webdavMounts.description}
+            variables={ENV_VARS.webdavMounts.variables}
+          />
+          <EnvTable
             id="env-services"
             title={ENV_VARS.services.title}
             description={ENV_VARS.services.description}
@@ -405,6 +412,72 @@ TZ=Australia/Sydney`}
             description={ENV_VARS.downloadTokens.description}
             variables={ENV_VARS.downloadTokens.variables}
           />
+        </div>
+      </section>
+
+      {/* ─── External WebDAV Mounts ─── */}
+      <section id="webdav-mounts" className="scroll-mt-24">
+        <h2 className="text-3xl font-bold text-white mb-2">
+          External WebDAV Mounts{' '}
+          <Badge variant="gradient" className="ml-2 text-xs align-middle">
+            New in v0.10.0
+          </Badge>
+        </h2>
+        <p className="text-white/50 mb-8">
+          Mount third-party WebDAV servers as read-only FUSE filesystems. Configure
+          mounts via a JSON file or inline environment variable. Mounts appear under{' '}
+          <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded text-purple-300">
+            /mnt/schrodrive/webdav/&lt;name&gt;/
+          </code>
+        </p>
+
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-3">Example webdav.json</h3>
+            <p className="text-sm text-white/50 mb-4">
+              Place this file at{' '}
+              <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded text-purple-300">
+                /config/webdav.json
+              </code>{' '}
+              (or set <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded text-purple-300">WEBDAV_MOUNTS_FILE</code> to a custom path):
+            </p>
+            <CodeBlock language="json" filename="webdav.json" showLineNumbers>
+{`[
+  {
+    "name": "nas-media",
+    "url": "https://nas.example.com/webdav/",
+    "username": "admin",
+    "password": "secret",
+    "skipOrganiser": true
+  },
+  {
+    "name": "seedbox",
+    "url": "https://seedbox.example.com/webdav/",
+    "username": "user",
+    "password": "pass",
+    "skipOrganiser": false
+  }
+]`}
+            </CodeBlock>
+          </div>
+
+          <GlassCard className="p-4" hoverEffect={false}>
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-white/50">
+                  <span className="text-blue-400 font-medium">Inline fallback:</span>{' '}
+                  If the JSON file is not found, SchröDrive falls back to the{' '}
+                  <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded">WEBDAV_MOUNTS</code>{' '}
+                  environment variable, which accepts the same JSON array format.
+                </p>
+                <p className="text-sm text-white/50 mt-2">
+                  Set <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded">skipOrganiser: true</code>{' '}
+                  (default) to prevent the media organiser from processing pre-sorted content.
+                </p>
+              </div>
+            </div>
+          </GlassCard>
         </div>
       </section>
 

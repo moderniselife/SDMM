@@ -150,7 +150,8 @@ const DEFAULT_SERVICES: ServiceConfig[] = [
   { envName: 'RUN_ORGANIZER_WATCH', label: 'Media Organiser', description: 'Auto-organise media into folders.', enabled: true },
   { envName: 'ARR_BRIDGE_ENABLED', label: '*arr Bridge', description: 'Emulate download client for Sonarr/Radarr.', enabled: false },
   { envName: 'AUTO_UPDATE_ENABLED', label: 'Auto-Update', description: 'Automatic container updates.', enabled: false },
-  { envName: 'RUN_WEB_GUI', label: 'Web GUI', description: 'Browser-based management dashboard.', enabled: true },
+  { envName: 'RUN_WEB_GUI', label: 'Web GUI', description: '10-page Next.js management dashboard.', enabled: false },
+  { envName: 'WEBDAV_MOUNTS_ENABLED', label: 'External WebDAV Mounts', description: 'Mount third-party WebDAV servers as read-only FUSE filesystems.', enabled: false },
 ];
 
 const DEFAULT_PATHS: PathConfig = {

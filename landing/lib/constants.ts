@@ -136,7 +136,7 @@ export const FEATURES: Feature[] = [
     icon: Eye,
     title: 'Web GUI Dashboard',
     description:
-      'Beautiful web interface for monitoring, configuration, and manual content management. Real-time status updates.',
+      '10-page Next.js dashboard for monitoring, configuration, and manual content management. Enable with RUN_WEB_GUI=true.',
   },
 ];
 
@@ -479,6 +479,30 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
       },
     ],
   },
+  webdavMounts: {
+    title: 'External WebDAV Mounts',
+    description: 'Mount third-party WebDAV servers as read-only FUSE filesystems. New in v0.10.0.',
+    variables: [
+      {
+        name: 'WEBDAV_MOUNTS_ENABLED',
+        default: 'false',
+        required: false,
+        description: 'Enable external WebDAV server mounting.',
+      },
+      {
+        name: 'WEBDAV_MOUNTS_FILE',
+        default: '/config/webdav.json',
+        required: false,
+        description: 'Path to JSON configuration file defining WebDAV mount entries.',
+      },
+      {
+        name: 'WEBDAV_MOUNTS',
+        default: '',
+        required: false,
+        description: 'Inline JSON array of WebDAV mount configs. Used as fallback if WEBDAV_MOUNTS_FILE is not found.',
+      },
+    ],
+  },
   services: {
     title: 'Service Toggles',
     description: 'Enable or disable individual SchröDrive services.',
@@ -521,9 +545,15 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
       },
       {
         name: 'RUN_WEB_GUI',
-        default: 'true',
+        default: 'false',
         required: false,
-        description: 'Enable the web-based management GUI.',
+        description: 'Enable the Next.js web-based management dashboard (10 pages).',
+      },
+      {
+        name: 'WEB_PORT',
+        default: '3000',
+        required: false,
+        description: 'Port for the Web GUI dashboard.',
       },
     ],
   },
@@ -694,8 +724,14 @@ export const SERVICES: ServiceToggle[] = [
   {
     envName: 'RUN_WEB_GUI',
     label: 'Web GUI',
-    description: 'Enable the browser-based management dashboard.',
-    defaultValue: true,
+    description: 'Enable the 10-page Next.js management dashboard.',
+    defaultValue: false,
+  },
+  {
+    envName: 'WEBDAV_MOUNTS_ENABLED',
+    label: 'External WebDAV Mounts',
+    description: 'Mount third-party WebDAV servers as read-only FUSE filesystems.',
+    defaultValue: false,
   },
 ];
 

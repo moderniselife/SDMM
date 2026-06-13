@@ -34,6 +34,7 @@ import {
   Tv,
   BookOpen,
   ChevronRight,
+  Network,
   type LucideIcon,
 } from 'lucide-react';
 import GlassCard from '@/components/ui/GlassCard';
@@ -91,6 +92,9 @@ const mountTree = [
   { path: '│   ├── anime/', level: 2 },
   { path: '│   ├── shows/', level: 2 },
   { path: '│   └── movies/', level: 2 },
+  { path: '├── webdav/', level: 1 },
+  { path: '│   ├── nas-media/', level: 2 },
+  { path: '│   └── seedbox/', level: 2 },
   { path: '└── merged/', level: 1 },
   { path: '    ├── movies/', level: 2 },
   { path: '    ├── shows/', level: 2 },
@@ -384,7 +388,7 @@ export default function FeaturesPage() {
             <SectionHeader
               icon={HardDrive}
               title="Virtual Drive System"
-              description="FUSE-mounted virtual filesystem backed by rclone WebDAV — your debrid content looks like local files."
+              description="FUSE-mounted virtual filesystem backed by rclone WebDAV, with external WebDAV server mounting for third-party sources — your debrid content looks like local files."
             />
 
             <AnimatedSection className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
@@ -474,6 +478,83 @@ export default function FeaturesPage() {
                   <p className="text-sm text-white/50">
                     Mount public shared folders from cloud providers directly into your filesystem. Point SchröDrive at a shared link and it appears as a local directory.
                   </p>
+                </GlassCard>
+              </AnimatedChild>
+            </AnimatedSection>
+          </div>
+        </section>
+
+        {/* ═══════ 3b. External WebDAV Mounts ═══════ */}
+        <section className="py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <SectionHeader
+              icon={Network}
+              title="External WebDAV Mounts"
+              description="Mount third-party WebDAV servers as read-only FUSE filesystems — NAS boxes, seedboxes, or any WebDAV-compatible source."
+            />
+
+            <AnimatedSection className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+              <AnimatedChild>
+                <GlassCard className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-purple-400" />
+                    Configuration
+                  </h3>
+                  <p className="text-sm text-white/50 mb-4">
+                    Define mounts in a <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded text-purple-300">webdav.json</code> file
+                    or via the <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded text-purple-300">WEBDAV_MOUNTS</code> environment variable.
+                    Each entry specifies a name, URL, credentials, and optional organiser behaviour.
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      { env: 'WEBDAV_MOUNTS_ENABLED', desc: 'Enable external WebDAV mounting' },
+                      { env: 'WEBDAV_MOUNTS_FILE', desc: 'Path to JSON config file' },
+                      { env: 'WEBDAV_MOUNTS', desc: 'Inline JSON array (fallback)' },
+                    ].map((item) => (
+                      <div key={item.env} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/5">
+                        <code className="text-xs text-purple-300 font-mono bg-white/5 px-1.5 py-0.5 rounded">{item.env}</code>
+                        <span className="text-xs text-white/40">{item.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </GlassCard>
+              </AnimatedChild>
+
+              <AnimatedChild>
+                <GlassCard className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FolderTree className="w-5 h-5 text-blue-400" />
+                    Mount Structure
+                  </h3>
+                  <div className="font-mono text-sm space-y-0.5 bg-black/30 p-4 rounded-xl border border-white/5">
+                    <div className="text-purple-400 font-semibold">/mnt/schrodrive/webdav/</div>
+                    <div className="text-blue-400">├── nas-media/</div>
+                    <div className="text-white/50">│   ├── movies/</div>
+                    <div className="text-white/50">│   └── shows/</div>
+                    <div className="text-blue-400">└── seedbox/</div>
+                    <div className="text-white/50">    ├── completed/</div>
+                    <div className="text-white/50">    └── importing/</div>
+                  </div>
+                  <p className="text-xs text-white/40 mt-3">
+                    Each mount name from your configuration becomes a subdirectory under <code className="text-xs bg-white/10 px-1 py-0.5 rounded">/webdav/</code>.
+                  </p>
+                </GlassCard>
+              </AnimatedChild>
+            </AnimatedSection>
+
+            <AnimatedSection>
+              <AnimatedChild>
+                <GlassCard className="p-5 flex items-start gap-4">
+                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <Eye className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Read-Only &amp; Organiser-Aware</h4>
+                    <p className="text-sm text-white/50">
+                      External WebDAV mounts are read-only FUSE filesystems. Set <code className="text-xs bg-white/10 px-1 py-0.5 rounded">skipOrganiser: true</code> (default)
+                      to prevent the media organiser from processing pre-sorted content from external sources.
+                    </p>
+                  </div>
                 </GlassCard>
               </AnimatedChild>
             </AnimatedSection>
@@ -690,6 +771,77 @@ export default function FeaturesPage() {
           </div>
         </section>
 
+        {/* ═══════ 6b. Zero-Block Plex Architecture ═══════ */}
+        <section className="py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <SectionHeader
+              icon={Zap}
+              title="Zero-Block Plex Architecture"
+              description="Never-block PROPFIND + deferred FUSE mount architecture prevents Plex library deletion on cold starts."
+            />
+
+            <AnimatedSection className="mb-12">
+              <AnimatedChild>
+                <h3 className="text-xl font-semibold mb-6 text-white/80">Two-Phase Pre-Warm Startup</h3>
+              </AnimatedChild>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  {
+                    phase: 'Phase 1: Container Created',
+                    description: 'Plex container is created but not started. SchröDrive begins FUSE mount initialisation and PROPFIND pre-warm cache population.',
+                    icon: Server,
+                  },
+                  {
+                    phase: 'Phase 2: Depth-1 Scan',
+                    description: 'Pre-warm cache completes a depth-1 directory scan across all configured providers. PROPFIND responses are cached for instant access.',
+                    icon: Search,
+                  },
+                  {
+                    phase: 'Phase 3: Bridge Ready',
+                    description: 'Two-phase pre-warm signals bridge ready. Plex container is started with a fully populated cache — no empty-library deletion risk.',
+                    icon: CheckCircle2,
+                  },
+                ].map((phase, idx) => (
+                  <AnimatedChild key={phase.phase}>
+                    <GlassCard className="p-6 relative">
+                      <div className="absolute top-4 right-4 text-4xl font-bold text-white/5">
+                        {idx + 1}
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/15 w-fit mb-4">
+                        <phase.icon className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <h4 className="font-semibold mb-2">{phase.phase}</h4>
+                      <p className="text-sm text-white/50">{phase.description}</p>
+                      {idx < 2 && (
+                        <div className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
+                          <ArrowRight className="w-5 h-5 text-white/20" />
+                        </div>
+                      )}
+                    </GlassCard>
+                  </AnimatedChild>
+                ))}
+              </div>
+            </AnimatedSection>
+
+            <AnimatedSection>
+              <AnimatedChild>
+                <GlassCard className="p-5 flex items-start gap-4">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Why This Matters</h4>
+                    <p className="text-sm text-white/50">
+                      Traditional setups risk Plex seeing empty mount points on cold start and deleting your entire library from its database.
+                      SchröDrive&apos;s zero-block architecture guarantees the FUSE filesystem is fully populated before Plex ever touches it.
+                    </p>
+                  </div>
+                </GlassCard>
+              </AnimatedChild>
+            </AnimatedSection>
+          </div>
+        </section>
+
         {/* ═══════ 7. Media Server Integration ═══════ */}
         <section className="py-20 px-6">
           <div className="max-w-6xl mx-auto">
@@ -746,7 +898,7 @@ export default function FeaturesPage() {
             <SectionHeader
               icon={LayoutDashboard}
               title="Web Dashboard"
-              description="A full Next.js dashboard embedded in the container — no external UI to deploy."
+              description="A full 10-page Next.js dashboard embedded in the container — enable with RUN_WEB_GUI=true, no external UI to deploy."
             />
 
             <AnimatedSection stagger={0.06}>
