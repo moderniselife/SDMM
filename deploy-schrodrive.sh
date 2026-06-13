@@ -363,41 +363,18 @@ if [ "$HEALTHY" = true ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Wait for pre-warm and start Plex
+# Start Plex
 # ---------------------------------------------------------------------------
-section "Starting Plex (after pre-warm)"
+section "Starting Plex"
 
 if [ "$HEALTHY" = true ]; then
-    info "Waiting for SchrosDrive pre-warm to complete before starting Plex..."
-    info "(Polling GET /health → cloudLinksPreWarm.complete)"
-    PREWARM_TIMEOUT=600  # 10 minutes max
-    PREWARM_CHECK=5      # Check every 5 seconds
-    PREWARM_ELAPSED=0
-    PREWARM_DONE=false
-
-    while [ $PREWARM_ELAPSED -lt $PREWARM_TIMEOUT ]; do
-        # Poll the health endpoint for pre-warm status
-        HEALTH_RESP=$(curl -s --connect-timeout 2 "http://$REMOTE_HOST:$SCHRODRIVE_PORT/health" 2>/dev/null || echo "")
-        if echo "$HEALTH_RESP" | grep -q '"complete":true'; then
-            PREWARM_DONE=true
-            break
-        fi
-        dim "Pre-warm in progress... (${PREWARM_ELAPSED}s / ${PREWARM_TIMEOUT}s timeout)"
-        sleep $PREWARM_CHECK
-        PREWARM_ELAPSED=$(( PREWARM_ELAPSED + PREWARM_CHECK ))
-    done
-
-    if [ "$PREWARM_DONE" = true ]; then
-        success "Pre-warm complete! Starting Plex container..."
-        remote "docker start plex 2>/dev/null && echo 'Plex started' || echo 'Failed to start Plex'"
-        sleep 5
-        remote "docker ps --format '{{.Names}} {{.Status}}' | grep plex || echo 'Plex not running'"
-    else
-        warning "Pre-warm did not complete within ${PREWARM_TIMEOUT}s — starting Plex anyway"
-        remote "docker start plex 2>/dev/null && echo 'Plex started' || echo 'Failed to start Plex'"
-    fi
+    info "SchröDrive is healthy — FUSE mounts are up. Starting Plex..."
+    info "(Cloud-links pre-warm runs in the background — can take hours, Plex doesn't need to wait for it)"
+    remote "docker start plex 2>/dev/null && echo 'Plex started' || echo 'Failed to start Plex'"
+    sleep 5
+    remote "docker ps --format '{{.Names}} {{.Status}}' | grep plex || echo 'Plex not running'"
 else
-    warning "SchrosDrive not healthy — starting Plex anyway (may see empty libraries)"
+    warning "SchröDrive not healthy — starting Plex anyway (may see empty libraries)"
     remote "docker start plex 2>/dev/null && echo 'Plex started' || echo 'Failed to start Plex'"
 fi
 
