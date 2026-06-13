@@ -41,6 +41,7 @@ logs/
 # Coverage
 coverage/
 deprecated-services-backup.yml
+plex-compose.yml.pre-seerr-backup
 
 # moderniselife implementation of pd_zurg 
 pd_zurg

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Seerr Support (v0.11.0)**: Overseerr and Jellyseerr have merged into [Seerr](https://github.com/seerr-team/seerr). SchroDrive now supports all three via a unified env var chain: `SEERR_*` > `OVERSEERR_*` > `JELLYSEERR_*`. Full backward compatibility maintained.
+- **plex-compose.yml migration to Seerr**: Replaced `ghcr.io/sct/overseerr:develop` with `ghcr.io/seerr-team/seerr:latest`. Added `init: true` as required by Seerr. Backup saved as `plex-compose.yml.pre-seerr-backup`.
 - **DUMB Comparison**: Added [DUMB](https://github.com/I-am-PUID-0/DUMB) (Debrid Unlimited Media Bridge) as 5th column in the landing page comparison table. Cloned and researched the DUMB repository for accurate feature data. DUMB is an AIO multi-service wrapper bundling ~30 third-party projects.
 - **SchröDrive Core v0.9.0 & v0.10.0 Changelog**: Added two new versions to the landing page changelog — v0.9.0 (11-provider ecosystem) and v0.10.0 (External WebDAV mounts, zero-block Plex architecture).
 - **Comparison Table Overhaul**: Expanded from 4 to 5 columns, added new rows (Approach, Usenet/NzbDAV, Tautulli, Reverse Proxy/Tunnels, Symlink Backup, FUSE Auto-Recovery), fixed runtime/provider data accuracy.
