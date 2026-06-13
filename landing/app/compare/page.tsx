@@ -46,6 +46,20 @@ const projectSummaries = [
     ],
   },
   {
+    name: 'DUMB',
+    gradient: false,
+    summary:
+      'AIO multi-service wrapper that bundles ~30 third-party projects (Zurg, Riven, cli_debrid, Decypharr, Arrs, Plex, Zilean, etc.) into a single Docker image with a guided setup wizard and Traefik access layer.',
+    highlights: [
+      'Bundles ~30 services in one container',
+      'Guided setup wizard',
+      'Bundled Traefik + Cloudflare tunnels',
+      'Symlink backup and repair',
+      'Aggregates existing tools — not native features',
+      'Python orchestrator for third-party binaries',
+    ],
+  },
+  {
     name: 'pd_zurg',
     gradient: false,
     summary:
