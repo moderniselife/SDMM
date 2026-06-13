@@ -14,10 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configured via `webdav.json` (gitignored — never committed to git)
   - Per-mount `skipOrganiser` flag (default: `true`) for pre-sorted content
   - Mounts appear under `/mnt/schrodrive/webdav/<name>/`
-- **Plex auto-start safety** (SchroDrive v0.10.0):
+- **Plex delayed start via deploy script**:
   - Deploy script creates Plex container without starting it
-  - SchroDrive auto-starts Plex only after PROPFIND cache pre-warm completes
-  - Prevents Plex from deleting library items by scanning empty cold-cache directories
+  - Waits for SchrosDrive PROPFIND pre-warm to complete (monitors logs)
+  - Only starts Plex after cache is confirmed warm — prevents library item deletion
 
 ### Changed
 - **Repository Cleanup**: Untracked and ignored custom deployment scripts (`deploy.sh`, `deploy-schrodrive.sh`) and environment configuration (`plex-compose.yml`) to keep local customizations private, and completely purged them from git history. Added `config.json` to `.gitignore` and configured `.gitmodules` with `ignore = untracked` for the `SchroDrive` submodule to maintain a clean git status.
