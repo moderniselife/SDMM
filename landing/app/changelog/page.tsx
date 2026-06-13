@@ -34,6 +34,34 @@ type Product = 'core' | 'media-manager';
 
 const coreChangelog: VersionEntry[] = [
   {
+    version: 'v0.10.0',
+    date: '2026-06-14',
+    emoji: '🌐',
+    tagline: 'External WebDAV mounts, Plex auto-start safety, 429 spam fixes',
+    changes: [
+      { category: 'Added', text: 'External WebDAV mount support — mount third-party WebDAV servers (NAS shares, media servers) as read-only FUSE filesystems via rclone, configured via webdav.json or WEBDAV_MOUNTS env var' },
+      { category: 'Added', text: 'Organiser skip flag for WebDAV mounts — skipOrganiser: true (default) excludes pre-sorted content from organiser scans' },
+      { category: 'Added', text: 'Post-pre-warm Plex scan trigger — triggers Plex library scan after PROPFIND cache pre-warm completes' },
+      { category: 'Added', text: 'Zero-block Plex architecture — never-block PROPFIND with deferred FUSE mount, breadth-first pre-warm traversal' },
+      { category: 'Fixed', text: 'Rate-limit background refresh queue to suppress 429 log spam during pre-warm' },
+      { category: 'Fixed', text: 'Added rclone retry limits (--retries 1 --low-level-retries 3) to prevent D-state kernel hangs from 503 retry loops' },
+      { category: 'Fixed', text: 'Disk cache OOM fix — reduced MAX_DISK_CACHE_SIZE from 3000 to 500 to prevent OOM on serialisation for large directories' },
+      { category: 'Performance', text: 'Two-phase pre-warm — signal bridge ready after depth-1 scan, full crawl continues in background' },
+    ],
+  },
+  {
+    version: 'v0.9.0',
+    date: '2026-06-07',
+    emoji: '🌐',
+    tagline: '11-provider debrid ecosystem — the most provider support of any debrid automation tool',
+    changes: [
+      { category: 'Added', text: '7 new debrid providers (11 total): Debrid-Link, Deepbrid, Offcloud, Put.io, MegaDebrid, Seedr, PikPak — each with full interface implementation' },
+      { category: 'Added', text: 'WebDAV bridge ports for all 7 new providers (9119–9127)' },
+      { category: 'Added', text: 'Download token rotation support for all 11 providers' },
+      { category: 'Changed', text: 'AllDebrid status updated from Untested to In-testing with live accounts' },
+    ],
+  },
+  {
     version: 'v0.8.0',
     date: '2026-06-07',
     emoji: '🎬',
