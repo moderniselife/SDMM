@@ -157,7 +157,7 @@ export const PROVIDERS: Provider[] = [
   },
   {
     name: 'AllDebrid',
-    status: 'testing',
+    status: 'stable',
     features: ['Torrents', 'Cached content', 'WebDAV bridge', 'FUSE mounts'],
   },
   {
@@ -269,7 +269,7 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
   },
   debridAlldebrid: {
     title: 'AllDebrid',
-    description: 'API and WebDAV configuration for AllDebrid. In-testing 🧪.',
+    description: 'API and WebDAV configuration for AllDebrid.',
     variables: [
       { name: 'ALLDEBRID_API_KEY', default: '', required: false, description: 'API key for AllDebrid. Required if alldebrid is in PROVIDERS list.' },
       { name: 'ALLDEBRID_API_BASE', default: '', required: false, description: 'Base URL for AllDebrid API.' },
@@ -396,20 +396,20 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
     ],
   },
   overseerr: {
-    title: 'Overseerr / Jellyseerr',
-    description: 'Request management integration for media requests.',
+    title: 'Seerr (Overseerr / Jellyseerr)',
+    description: 'Request management integration for media requests. Seerr is the merged successor to Overseerr + Jellyseerr — all three share the same API, and legacy OVERSEERR_*/JELLYSEERR_* env vars still work as fallbacks.',
     variables: [
       {
-        name: 'OVERSEERR_URL',
+        name: 'SEERR_URL',
         default: '',
         required: false,
-        description: 'URL for Overseerr or Jellyseerr instance.',
+        description: 'URL for your Seerr, Overseerr, or Jellyseerr instance. Takes priority over OVERSEERR_URL/JELLYSEERR_URL.',
       },
       {
-        name: 'OVERSEERR_API_KEY',
+        name: 'SEERR_API_KEY',
         default: '',
         required: false,
-        description: 'API key for Overseerr or Jellyseerr.',
+        description: 'API key for Seerr, Overseerr, or Jellyseerr. Takes priority over OVERSEERR_API_KEY/JELLYSEERR_API_KEY.',
       },
     ],
   },
@@ -517,7 +517,7 @@ export const ENV_VARS: Record<string, EnvVarCategory> = {
         name: 'RUN_WEBHOOK',
         default: 'true',
         required: false,
-        description: 'Enable Overseerr webhook listener for incoming requests.',
+        description: 'Enable Seerr (Overseerr/Jellyseerr) webhook listener for incoming requests.',
       },
       {
         name: 'RUN_POLLER',
@@ -643,14 +643,20 @@ export const INTEGRATIONS: Integration[] = [
     category: 'indexer',
   },
   {
+    name: 'Seerr',
+    description: 'Merged successor to Overseerr + Jellyseerr — the recommended request manager.',
+    icon: Globe,
+    category: 'request-manager',
+  },
+  {
     name: 'Overseerr',
-    description: 'Media request and discovery tool.',
+    description: 'Media request and discovery tool. Still fully supported as a fallback.',
     icon: Globe,
     category: 'request-manager',
   },
   {
     name: 'Jellyseerr',
-    description: 'Fork of Overseerr for Jellyfin.',
+    description: 'Fork of Overseerr for Jellyfin. Still fully supported as a fallback.',
     icon: Globe,
     category: 'request-manager',
   },
@@ -681,8 +687,8 @@ export const SERVICES: ServiceToggle[] = [
   },
   {
     envName: 'RUN_WEBHOOK',
-    label: 'Overseerr Webhook',
-    description: 'Listen for incoming media requests from Overseerr/Jellyseerr.',
+    label: 'Seerr Webhook',
+    description: 'Listen for incoming media requests from Seerr (Overseerr/Jellyseerr).',
     defaultValue: true,
   },
   {
@@ -764,7 +770,7 @@ export const FOOTER_LINKS: Record<string, FooterLinkGroup> = {
     links: [
       { label: 'Documentation', href: '/docs' },
       { label: 'Docker Generator', href: '/docs/docker' },
-      { label: 'GitHub', href: 'https://github.com/schrodrive' },
+      { label: 'GitHub', href: 'https://github.com/moderniselife/SchroDrive' },
     ],
   },
   stack: {

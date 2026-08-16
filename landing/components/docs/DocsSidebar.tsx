@@ -61,7 +61,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: 'env-core', label: 'Core Settings' },
       { id: 'env-debrid', label: 'Debrid Providers' },
       { id: 'env-indexers', label: 'Indexers' },
-      { id: 'env-overseerr', label: 'Overseerr' },
+      { id: 'env-overseerr', label: 'Seerr' },
       { id: 'env-media-servers', label: 'Media Servers' },
       { id: 'env-mount', label: 'Mount & WebDAV' },
       { id: 'env-services', label: 'Service Toggles' },
@@ -210,10 +210,7 @@ export default function DocsSidebar() {
       <div className="pt-4 mt-4 border-t border-white/10">
         <a
           href="/docs/docker"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-            bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-purple-300
-            border border-purple-500/20 hover:border-purple-500/40
-            transition-all duration-200 hover:from-purple-500/20 hover:to-blue-500/20"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-purple-300 border border-purple-500/20 hover:border-purple-500/40 transition-all duration-200 hover:from-purple-500/20 hover:to-blue-500/20"
         >
           <FileCode2 className="w-4 h-4" />
           <span>Docker Compose Generator</span>
@@ -228,10 +225,7 @@ export default function DocsSidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed bottom-6 right-6 z-40 p-3 rounded-full
-          bg-gradient-to-r from-purple-600 to-blue-600 text-white
-          shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40
-          transition-all duration-200"
+        className="lg:hidden fixed bottom-6 right-6 z-40 p-3 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-200"
         aria-label="Open documentation menu"
       >
         <Menu className="w-5 h-5" />
@@ -252,8 +246,7 @@ export default function DocsSidebar() {
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="absolute left-0 top-0 bottom-0 w-80 p-6 overflow-y-auto
-                bg-[#0a0a1a]/95 backdrop-blur-xl border-r border-white/10"
+              className="absolute left-0 top-0 bottom-0 w-80 p-6 overflow-y-auto bg-[#0a0a1a]/95 backdrop-blur-xl border-r border-white/10"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
@@ -273,9 +266,7 @@ export default function DocsSidebar() {
 
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-64 flex-shrink-0">
-        <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto
-          rounded-xl backdrop-blur-xl bg-white/5 border border-white/10 p-4
-          scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+        <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-xl backdrop-blur-xl bg-white/5 border border-white/10 p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
           {sidebarContent}
         </div>
       </aside>

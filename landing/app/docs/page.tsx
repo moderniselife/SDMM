@@ -114,6 +114,7 @@ export default function DocsPage() {
 {`docker run -d \\
   --name schrodrive \\
   --restart unless-stopped \\
+  -p 8978:8978 \\
   -p 3000:3000 \\
   -v /home/user/schrodrive/config:/app/config \\
   -v /mnt/schrodrive:/mnt/schrodrive:shared \\
@@ -126,7 +127,7 @@ export default function DocsPage() {
   -e PLEX_URL=http://plex:32400 \\
   -e PLEX_TOKEN=your_plex_token \\
   -e TZ=Australia/Sydney \\
-  ghcr.io/schrodrive/schrodrive:latest`}
+  ghcr.io/moderniselife/schrodrive:latest`}
           </CodeBlock>
 
           <GlassCard className="p-4 mt-4" hoverEffect={false}>
@@ -158,10 +159,11 @@ export default function DocsPage() {
 
 services:
   schrodrive:
-    image: ghcr.io/schrodrive/schrodrive:latest
+    image: ghcr.io/moderniselife/schrodrive:latest
     container_name: schrodrive
     restart: unless-stopped
     ports:
+      - "8978:8978"
       - "3000:3000"
     volumes:
       - ./config:/app/config
@@ -189,9 +191,9 @@ services:
       - PROWLARR_URL=http://prowlarr:9696
       - PROWLARR_API_KEY=your_prowlarr_key
       
-      # ── Request Manager ──
-      - OVERSEERR_URL=http://overseerr:5055
-      - OVERSEERR_API_KEY=your_overseerr_key
+      # ── Request Manager (Seerr / Overseerr / Jellyseerr) ──
+      - SEERR_URL=http://seerr:5055
+      - SEERR_API_KEY=your_seerr_key
       
       # ── Services ──
       - RUN_MOUNT=true
@@ -199,7 +201,7 @@ services:
       - RUN_POLLER=true
       - RUN_WEB_GUI=true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8978/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -231,8 +233,8 @@ services:
           <h3 className="text-xl font-semibold text-white mb-4">Install with Bun</h3>
           <CodeBlock language="bash" filename="terminal">
 {`# Clone the repository
-$ git clone https://github.com/schrodrive/schrodrive.git
-$ cd schrodrive
+$ git clone https://github.com/moderniselife/SchroDrive.git
+$ cd SchroDrive
 
 # Install dependencies
 $ bun install
@@ -486,8 +488,8 @@ TZ=Australia/Sydney`}
         <h2 className="text-3xl font-bold text-white mb-6">Integrations</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <IntegrationCard
-            name="Overseerr / Jellyseerr"
-            description="Media request management. Webhook + API polling for automatic content acquisition."
+            name="Seerr (Overseerr / Jellyseerr)"
+            description="Media request management. Webhook + API polling for automatic content acquisition. Seerr is the merged successor to Overseerr + Jellyseerr — all three are fully supported."
             category="Request Manager"
           />
           <IntegrationCard
@@ -529,10 +531,10 @@ TZ=Australia/Sydney`}
               Verify SchröDrive is running correctly with a health check:
             </p>
             <CodeBlock language="bash" filename="terminal">
-{`$ curl http://localhost:3000/api/health
+{`$ curl http://localhost:8978/health
 
 # Expected response:
-# {"status":"ok","version":"1.x.x","uptime":123}`}
+# {"ok":true,"cloudLinksPreWarm":{"complete":true,"completedAt":"2026-08-15T10:00:00.000Z"}}`}
             </CodeBlock>
           </div>
 
@@ -562,7 +564,7 @@ $ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
                 </h3>
                 <p className="text-sm text-white/50">
                   SchröDrive is now running. Content will begin appearing in your media
-                  server as requests come in through Overseerr or the Web GUI. Check the
+                  server as requests come in through Seerr or the Web GUI. Check the
                   dashboard for real-time status and logs.
                 </p>
               </div>

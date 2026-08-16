@@ -8,7 +8,7 @@ const integrations = [
   { name: 'Plex', color: '#E5A00D' },
   { name: 'Jellyfin', color: '#00A4DC' },
   { name: 'Emby', color: '#52B54B' },
-  { name: 'Overseerr', color: '#7B68EE' },
+  { name: 'Seerr', color: '#7B68EE' },
   { name: 'Radarr', color: '#FFC230' },
   { name: 'Sonarr', color: '#00BFFF' },
   { name: 'Prowlarr', color: '#FF6347' },

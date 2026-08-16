@@ -232,7 +232,7 @@ export default function AboutPage() {
                   </div>
                 </div>
                 <p className="text-white/50 leading-relaxed text-sm">
-                  Connects Overseerr → Prowlarr/Jackett → debrid services → rclone FUSE mounts →
+                  Connects Seerr → Prowlarr/Jackett → debrid services → rclone FUSE mounts →
                   Plex/Jellyfin/Emby. Handles torrent lifecycle, self-healing mounts, multi-provider
                   token rotation, watchlist polling, and a native *arr bridge — all in a single container.
                 </p>

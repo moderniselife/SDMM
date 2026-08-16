@@ -7,7 +7,7 @@ import GradientText from '@/components/ui/GradientText';
 
 const steps = [
   {
-    label: 'Overseerr',
+    label: 'Seerr',
     description: 'Request',
     emoji: '🎬',
   },

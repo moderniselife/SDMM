@@ -87,11 +87,11 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
 const DEFAULT_INTEGRATIONS: IntegrationConfig[] = [
   {
     id: 'overseerr',
-    name: 'Overseerr / Jellyseerr',
+    name: 'Seerr (Overseerr / Jellyseerr)',
     enabled: false,
     fields: [
-      { key: 'OVERSEERR_URL', label: 'URL', placeholder: 'http://overseerr:5055', value: '' },
-      { key: 'OVERSEERR_API_KEY', label: 'API Key', placeholder: 'your_overseerr_api_key', value: '' },
+      { key: 'SEERR_URL', label: 'URL', placeholder: 'http://seerr:5055', value: '' },
+      { key: 'SEERR_API_KEY', label: 'API Key', placeholder: 'your_seerr_api_key', value: '' },
     ],
   },
   {
@@ -143,7 +143,7 @@ const DEFAULT_INTEGRATIONS: IntegrationConfig[] = [
 
 const DEFAULT_SERVICES: ServiceConfig[] = [
   { envName: 'RUN_MOUNT', label: 'rclone FUSE Mounts', description: 'Mount debrid cloud storage as local directories.', enabled: true },
-  { envName: 'RUN_WEBHOOK', label: 'Overseerr Webhook', description: 'Listen for media requests via webhook.', enabled: true },
+  { envName: 'RUN_WEBHOOK', label: 'Seerr Webhook', description: 'Listen for media requests via webhook.', enabled: true },
   { envName: 'RUN_POLLER', label: 'API Poller', description: 'Periodically poll for new content.', enabled: true },
   { envName: 'RUN_WATCHLIST_POLLER', label: 'Watchlist Poller', description: 'Poll Plex watchlists for requests.', enabled: false },
   { envName: 'RUN_DEAD_SCANNER_WATCH', label: 'Dead Scanner', description: 'Detect and replace broken links.', enabled: true },
@@ -244,10 +244,11 @@ export default function DockerGenerator() {
 
     // ─── SchröDrive Core ─── //
     yaml += '  schrodrive:\n';
-    yaml += '    image: ghcr.io/schrodrive/schrodrive:latest\n';
+    yaml += '    image: ghcr.io/moderniselife/schrodrive:latest\n';
     yaml += '    container_name: schrodrive\n';
     yaml += '    restart: unless-stopped\n';
     yaml += '    ports:\n';
+    yaml += '      - "8978:8978"\n';
     yaml += '      - "3000:3000"\n';
 
     // Volumes
@@ -300,7 +301,7 @@ export default function DockerGenerator() {
     // Health check
     yaml += '\n';
     yaml += '    healthcheck:\n';
-    yaml += '      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]\n';
+    yaml += '      test: ["CMD", "curl", "-f", "http://localhost:8978/health"]\n';
     yaml += '      interval: 30s\n';
     yaml += '      timeout: 10s\n';
     yaml += '      retries: 3\n';
@@ -683,20 +684,14 @@ export default function DockerGenerator() {
         <button
           onClick={() => setActiveStep((s) => Math.max(1, s - 1))}
           disabled={activeStep === 1}
-          className="px-4 py-2 rounded-lg text-sm font-medium
-            text-white/50 hover:text-white/80 hover:bg-white/5
-            disabled:opacity-30 disabled:cursor-not-allowed
-            transition-all duration-200"
+          className="px-4 py-2 rounded-lg text-sm font-medium text-white/50 hover:text-white/80 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
         >
           ← Previous
         </button>
         {activeStep < 5 ? (
           <button
             onClick={() => setActiveStep((s) => Math.min(5, s + 1))}
-            className="px-4 py-2 rounded-lg text-sm font-medium
-              bg-purple-500/20 border border-purple-500/30 text-purple-300
-              hover:bg-purple-500/30 transition-all duration-200
-              flex items-center gap-1.5"
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:bg-purple-500/30 transition-all duration-200 flex items-center gap-1.5"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>
@@ -719,10 +714,7 @@ export default function DockerGenerator() {
               onClick={handleCopy}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
-                bg-gradient-to-r from-purple-600 to-blue-600 text-white
-                shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40
-                transition-shadow duration-200"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-shadow duration-200"
             >
               {copied ? (
                 <>
@@ -740,9 +732,7 @@ export default function DockerGenerator() {
               onClick={handleDownload}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
-                bg-white/10 text-white border border-white/20 hover:bg-white/15
-                backdrop-blur-sm transition-all duration-200"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-white/10 text-white border border-white/20 hover:bg-white/15 backdrop-blur-sm transition-all duration-200"
             >
               <Download className="w-4 h-4" />
               Download .yml
@@ -840,10 +830,7 @@ function InputField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10
-          text-sm text-white/80 font-mono placeholder:text-white/20
-          focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25
-          transition-all duration-200"
+        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 font-mono placeholder:text-white/20 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 transition-all duration-200"
       />
     </div>
   );

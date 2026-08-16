@@ -16,7 +16,7 @@ const products = [
     description:
       'Automates media requests, searches indexers, submits to debrid providers, mounts as virtual drives, and serves content to your media servers. The brain of the operation.',
     stats: ['11 providers', '6 watchlist sources', '4 scrapers'],
-    version: 'v0.5.3',
+    version: 'v0.11.2',
     gradient: 'from-purple-500 to-blue-500',
     link: 'https://github.com/moderniselife/SchroDrive',
   },
@@ -167,9 +167,7 @@ export default function StackSection() {
 
           {/* Quantum quote */}
           <p className="max-w-2xl text-center text-sm leading-relaxed text-white/40 italic">
-            &ldquo;Together, your media exists in perfect superposition — streamed
-            from the cloud until it&apos;s popular enough to collapse into local
-            permanence.&rdquo;
+            &ldquo;Together, your media exists in perfect superposition — streamed from the cloud until it&apos;s popular enough to collapse into local permanence.&rdquo;
           </p>
         </motion.div>
       </div>

@@ -76,7 +76,7 @@ export default function HeroSection() {
         >
           The ultimate media automation orchestrator for debrid services.
           Connect your requests, indexers, and providers into a single
-          self-healing pipeline — from Overseerr to your media server,
+          self-healing pipeline — from Seerr to your media server,
           fully automated in one container.
         </motion.p>
 

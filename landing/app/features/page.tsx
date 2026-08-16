@@ -56,7 +56,7 @@ interface DebridProvider {
 const providers: DebridProvider[] = [
   { name: 'TorBox', status: 'supported', features: { torrents: true, web: true, usenet: true, webdav: true, bridge: true } },
   { name: 'RealDebrid', status: 'supported', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
-  { name: 'AllDebrid', status: 'in-testing', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
+  { name: 'AllDebrid', status: 'supported', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
   { name: 'Premiumize', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
   { name: 'Debrid-Link', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
   { name: 'Deepbrid', status: 'untested', features: { torrents: true, web: false, usenet: false, webdav: true, bridge: true } },
@@ -115,14 +115,11 @@ const arrEndpoints = [
 ];
 
 const automationServices = [
-  { name: 'Overseerr Watchlist', env: 'OVERSEERR_ENABLED', default: true, description: 'Polls Overseerr for approved requests and auto-acquires content.' },
-  { name: 'Plex Watchlist', env: 'PLEX_WATCHLIST_ENABLED', default: true, description: 'Monitors Plex watchlists for new additions to auto-download.' },
-  { name: 'Jellyfin Watchlist', env: 'JELLYFIN_WATCHLIST_ENABLED', default: false, description: 'Syncs Jellyfin user watchlists for automated acquisition.' },
-  { name: 'Trakt Watchlist', env: 'TRAKT_WATCHLIST_ENABLED', default: false, description: 'Watches Trakt lists and collections for new items.' },
-  { name: 'Mdblist Sync', env: 'MDBLIST_ENABLED', default: false, description: 'Syncs curated Mdblist lists for bulk content automation.' },
-  { name: 'Listrr Integration', env: 'LISTRR_ENABLED', default: false, description: 'Pulls from Listrr lists with filtering and automation.' },
-  { name: 'Library Refresh', env: 'LIBRARY_REFRESH_ENABLED', default: true, description: 'Auto-triggers Plex/Jellyfin/Emby library scans after new content.' },
-  { name: 'Content Repair', env: 'CONTENT_REPAIR_ENABLED', default: true, description: 'Automatically detects and re-acquires dead or broken torrents.' },
+  { name: 'Seerr Requests', env: 'RUN_POLLER', default: false, description: 'Polls Seerr (Overseerr/Jellyseerr) for approved requests and auto-acquires content.' },
+  { name: 'Watchlist Poller', env: 'RUN_WATCHLIST_POLLER', default: false, description: 'Monitors Plex, Jellyfin, Emby, Trakt, Mdblist, and Listrr watchlists for new additions — each source activates automatically once configured.' },
+  { name: 'Dead Torrent Scanner', env: 'RUN_DEAD_SCANNER_WATCH', default: false, description: 'Continuously watches for dead or stalled torrents so repair can kick in automatically.' },
+  { name: 'Library Refresh', env: 'REFRESH_LIBRARY_ON_ADD', default: true, description: 'Auto-triggers Plex/Jellyfin/Emby library scans after new content.' },
+  { name: 'Content Repair', env: 'ENABLE_REPAIR', default: true, description: 'Automatically detects and re-acquires dead or broken torrents.' },
 ];
 
 const repairPhases = [
@@ -577,7 +574,7 @@ export default function FeaturesPage() {
                   <h3 className="text-lg font-semibold mb-6">Request Pipeline</h3>
                   <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
                     {[
-                      { label: 'Overseerr', colour: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+                      { label: 'Seerr', colour: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
                       { label: 'Radarr / Sonarr', colour: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
                       { label: 'SchröDrive (fake qBit)', colour: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
                       { label: '11 Debrid Providers', colour: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },

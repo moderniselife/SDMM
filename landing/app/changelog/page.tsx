@@ -34,6 +34,43 @@ type Product = 'core' | 'media-manager';
 
 const coreChangelog: VersionEntry[] = [
   {
+    version: 'v0.11.2',
+    date: '2026-08-15',
+    emoji: '🔒',
+    tagline: 'Multi-arch release images, CodeQL security review',
+    changes: [
+      { category: 'Fixed', text: 'Release Docker images (version tags) were amd64-only — every tagged release shipped only a linux/amd64 manifest despite :latest being multi-arch. Release builds now produce both linux/amd64 and linux/arm64' },
+      { category: 'Fixed', text: 'SSRF protection on .torrent URL fetching — URLs sourced from Prowlarr/Jackett search results are now validated to reject internal/private addresses before the server fetches them' },
+      { category: 'Fixed', text: 'Google Drive API query injection in the cloud link mount adapter — folder/file names are now correctly escaped' },
+      { category: 'Fixed', text: 'Incomplete URL scheme validation in the directory-listing scraper — data: and vbscript: links are now blocked alongside javascript:' },
+      { category: 'Fixed', text: 'ReDoS-prone regex in the Prowlarr/Jackett TMDB-suffix cleanup — search query length is now bounded before regex processing' },
+      { category: 'Added', text: 'Regression test suite for the SSRF guard and Drive query escaping' },
+    ],
+  },
+  {
+    version: 'v0.11.1',
+    date: '2026-08-15',
+    emoji: '🐛',
+    tagline: '*arr bridge startup fix, dependency security bump, test infrastructure',
+    changes: [
+      { category: 'Fixed', text: 'The *arr bridge (fake qBittorrent API) failed to start under Express 5 — a dropped wildcard-route syntax left the bridge unbound on its port, so Radarr/Sonarr got connection-refused on 8282' },
+      { category: 'Changed', text: 'next.js bumped to patch several high/moderate severity security advisories (App Router DoS, middleware/proxy bypass, SSRF in rewrites and Server Actions)' },
+      { category: 'Added', text: 'New unit/e2e/regression test suite (bun:test) plus a GitHub Actions CI pipeline and pre-commit hook running typecheck + tests on every change' },
+    ],
+  },
+  {
+    version: 'v0.11.0',
+    date: '2026-06-14',
+    emoji: '🔄',
+    tagline: 'Seerr (Overseerr + Jellyseerr merger) support, codebase deduplication',
+    changes: [
+      { category: 'Added', text: 'Seerr support — the merged successor to Overseerr + Jellyseerr, sharing the same API. New SEERR_URL/SEERR_API_KEY/SEERR_AUTH env vars take priority, with full backward compatibility for existing OVERSEERR_*/JELLYSEERR_* configs' },
+      { category: 'Added', text: '/health endpoint now reports cloud-link pre-warm status (cloudLinksPreWarm) so deploy scripts can gate Plex start on cache readiness' },
+      { category: 'Changed', text: 'Removed 600+ lines of duplicated code across 34 files via shared utility modules' },
+      { category: 'Changed', text: 'Plex integration simplified — dropped the Docker-socket-dependent auto-start hack in favour of a simple reachability check' },
+    ],
+  },
+  {
     version: 'v0.10.0',
     date: '2026-06-14',
     emoji: '🌐',

@@ -28,7 +28,7 @@ const comparisonData: ComparisonRow[] = [
   // Provider Support
   { category: 'Provider Support', label: 'TorBox', values: ['yes', 'Via cli_debrid', 'no', 'no', 'yes'] },
   { label: 'RealDebrid', values: ['yes', 'Via Zurg/Decypharr', 'yes', 'yes', 'yes'] },
-  { label: 'AllDebrid', values: ['In-testing 🧪', 'Via cli_debrid', 'yes', 'no', 'yes'] },
+  { label: 'AllDebrid', values: ['yes', 'Via cli_debrid', 'yes', 'no', 'yes'] },
   { label: 'Premiumize', values: ['untested', 'no', 'no', 'no', 'no'] },
   { label: 'Debrid-Link', values: ['untested', 'no', 'no', 'no', 'no'] },
   { label: 'Deepbrid', values: ['untested', 'no', 'no', 'no', 'no'] },

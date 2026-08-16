@@ -50,8 +50,7 @@ export default function EnvTable({
         {/* Header */}
         <button
           onClick={toggleCollapse}
-          className="w-full flex items-center justify-between px-6 py-4 bg-white/[0.03] border-b border-white/10
-            hover:bg-white/[0.05] transition-colors duration-200 text-left"
+          className="w-full flex items-center justify-between px-6 py-4 bg-white/[0.03] border-b border-white/10 hover:bg-white/[0.05] transition-colors duration-200 text-left"
         >
           <div>
             <h3 className="text-lg font-semibold text-white">{title}</h3>
@@ -88,10 +87,7 @@ export default function EnvTable({
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Filter variables..."
-                      className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10
-                        text-sm text-white/80 placeholder:text-white/30
-                        focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25
-                        transition-all duration-200"
+                      className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 transition-all duration-200"
                     />
                   </div>
                 </div>
